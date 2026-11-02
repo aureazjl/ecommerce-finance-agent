@@ -14,7 +14,7 @@ def _has_explicit_time(question):
 def _apply_business_constraints(question, intent):
     """只校正高置信业务同义表达，避免模型偶发把“畅销”误判为利润。"""
     q = question or ''
-    if any(x in q for x in ('畅销', '卖得好', '卖得最好', '热销', '热门商品', '热门产品')):
+    if any(x in q for x in ('畅销', '卖得好', '卖得最好', '销量最好', '销量最高', '热销', '热门商品', '热门产品')):
         intent.update(metric='销售额', metric_field='actual_sales', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
     if any(x in q for x in ('最赚钱', '赚钱最多', '利润最高', '盈利最好')):
         intent.update(metric='利润', metric_field='profit', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
@@ -25,6 +25,7 @@ class AgentState(TypedDict, total=False):
     user_name: str
     use_model: bool
     model_intent: dict[str, Any]
+    model_status: str
     intent: dict[str, Any]
     plan: list[str]
     policy: dict[str, Any]
@@ -45,10 +46,10 @@ def router_node(state):
             model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是企业经营分析规划器，不是关键词分类器。把任意自然语言问题转换为可执行的结构化分析计划，只返回JSON。字段：intent(summary/ranking/comparison/diagnosis/trend/report/clarification)、metric(销售额/利润/运营成本/货品成本/利润率)、dimension(日期/部门/主管/组长/产品/null)、operation(summary/ranking/comparison/diagnosis/trend)、sort(desc/asc/null)、limit(1-100)、time_type(latest_available/today/yesterday/range/null)、filters(array)、steps(array)。根据语义推断，不要求用户使用字段原名。例：哪个产品畅销/卖得好的商品/热门商品 -> 产品+销售额+ranking；哪个产品最赚钱 -> 产品+利润+ranking；为什么利润下降 -> 利润+diagnosis；最近表现 -> latest_available。不要编造业务字段。'}, {'role': 'user', 'content': f'问题：{q}\n可用业务元数据：{knowledge_context()}'}])
             intent = model_intent.get('intent', intent) if model_intent.get('intent') in {'summary','ranking','comparison','diagnosis','trend','report','clarification'} else intent
             model_intent['intent'] = intent
-            return {'intent': {'type': intent}, 'model_intent': model_intent, 'trace': _trace(state, 'router')}
+            return {'intent': {'type': intent}, 'model_intent': model_intent, 'model_status': 'called', 'trace': _trace(state, 'router[DeepSeek]')}
         except Exception:
-            pass
-    return {'intent': {'type': intent}, 'model_intent': {}, 'trace': _trace(state, 'router')}
+            return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'fallback', 'trace': _trace(state, 'router[本地兜底]','fallback')}
+    return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'disabled', 'trace': _trace(state, 'router[本地兜底]','fallback')}
 
 def semantic_node(state):
     q = state['question']; metric, metric_field = match_metric(q); dimension, dimension_field = match_dimension(q); dates = parse_date_range(q)
@@ -84,7 +85,7 @@ def intent_validate_node(state):
                 intent.update(parse_date_range(state['question']))
         except Exception:
             pass
-    return {'intent': _apply_business_constraints(state['question'], intent), 'trace': _trace(state, 'intent_validate')}
+    return {'intent': _apply_business_constraints(state['question'], intent), 'trace': _trace(state, 'intent_validate[DeepSeek]' if ENABLE_DEEPSEEK and state.get('use_model') else 'intent_validate[本地]')}
 
 def policy_node(state):
     risky = any(x in state['question'] for x in ('删除', '导入', '修改', '更新数据', '清空'))
@@ -116,7 +117,7 @@ def insight_node(state):
 def render_node(state):
     result = state['result']; rows = result.get('rows', []); intent = state.get('intent', {}); chart_type = 'bar' if intent.get('dimension_field') else 'metric'
     chart = {'type': chart_type, 'x': 'name', 'y': 'value', 'title': f"{intent.get('metric', '指标')}按{intent.get('dimension') or '时间'}"}
-    return {'result': {**result, 'table': rows, 'chart': chart, 'evidence': {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension')}, 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {}), 'confidence': 0.92 if result.get('source', {}).get('row_count', 0) else 0.35}, 'trace': _trace(state, 'render')}
+    return {'result': {**result, 'table': rows, 'chart': chart, 'evidence': {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension')}, 'model_status': state.get('model_status', 'unknown'), 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {}), 'confidence': 0.92 if result.get('source', {}).get('row_count', 0) else 0.35}, 'trace': _trace(state, 'render')}
 
 def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
