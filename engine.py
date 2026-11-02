@@ -30,7 +30,11 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     if not dimension_field: result_rows = [{'name': metric_name, 'value': round(sum(float(x.get(metric_field) or 0) for x in result_rows), 2), 'rows': row_count}]
     total = round(sum(x['value'] for x in result_rows), 2) if dimension_field else result_rows[0]['value']; intent = {'metric': metric_name, 'metric_field': metric_field, 'dimension': dimension_name, 'dimension_field': dimension_field, 'start_date': start, 'end_date': end, 'limit': 10}; elapsed = int((time.perf_counter() - started) * 1000)
     diagnosis = _diagnosis(question, query, result_rows)
+    ranking = normalized_intent.get('operation') == 'ranking' and dimension_field
     if not result_rows: answer = f'{start} 至 {end} 没有可分析数据，最近有数据日期为 {latest_data_date() or "无"}。'
+    elif ranking:
+        top = result_rows[0]
+        answer = f'{start} 至 {end}，{dimension_name}中{metric_name}最高的是“{top["name"]”，数值为 {float(top["value"]):,.2f}。'
     elif diagnosis: answer = f'{start} 至 {end}，{metric_name}{diagnosis["direction"]}{abs(diagnosis["delta"]):,.2f}，当前 {diagnosis["current"]:,.2f}，对比期间 {diagnosis["previous"]:,.2f}。'
     else: answer = f'{start} 至 {end}，{metric_name}为 {total:,.2f}。'
     record(user_name, question, intent, 'finance.db:product_profit_daily', row_count, elapsed)

@@ -54,6 +54,9 @@ def semantic_node(state):
     if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
         metric, metric_field = '销售额', 'actual_sales'
         dimension, dimension_field = dimension or '产品', dimension_field or 'product_name'
+        model_intent['operation'] = 'ranking'
+    if dimension_field == 'product_name' and any(x in q for x in ('哪个', '哪些', '排行', '排名')):
+        model_intent['operation'] = 'ranking'
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     return {'intent': intent, 'trace': _trace(state, 'semantic')}
