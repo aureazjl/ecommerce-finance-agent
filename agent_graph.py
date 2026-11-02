@@ -26,7 +26,7 @@ def _trace(state, node, status='ok'):
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
     fallback_intent = {}
-    if any(x in q for x in ('\u5356\u5f97\u597d', '\u5356\u5f97\u6700\u597d', '\u7545\u9500', '\u6700\u7545\u9500', '\u70ed\u9500', '\u70ed\u95e8', '\u9500\u91cf', '\u9500\u552e\u8868\u73b0')):
+    if any(x in q for x in ('\u5356\u5f97\u597d', '\u5356\u5f97\u6700\u597d', '\u7545\u9500', '\u6700\u7545\u9500', '\u70ed\u9500', '\u70ed\u95e8', '\u9500\u91cf', '\u9500\u552e\u8868\u73b0')) or ('\u6700\u597d' in q and dimension_field == 'product_name'):
         intent = 'ranking'; fallback_intent = {'metric': '销售额', 'dimension': '产品', 'operation': 'ranking', 'sort': 'desc'}
     if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
         try:

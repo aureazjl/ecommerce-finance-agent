@@ -22,6 +22,8 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     normalized_intent = normalized_intent or {}
     metric_name = normalized_intent.get('metric', metric_name); metric_field = normalized_intent.get('metric_field', metric_field)
     dimension_name = normalized_intent.get('dimension', dimension_name); dimension_field = normalized_intent.get('dimension_field', dimension_field)
+    if normalized_intent.get('operation') == 'ranking' and dimension_field == 'product_name' and not any(x in question for x in ('利润', '赚钱', '盈利', '成本')):
+        metric_name, metric_field = '销售额', 'actual_sales'
     start = normalized_intent.get('start_date', start); end = normalized_intent.get('end_date', end)
     query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)))
     data = aggregate(query); result_rows = data['rows']; row_count = sum(int(x.get('rows', 0)) for x in result_rows) if dimension_field else len(result_rows)
