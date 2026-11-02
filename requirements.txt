@@ -1,0 +1,2 @@
+# Runtime intentionally uses Python standard library for the first deploy.
+# Optional model provider can be added behind the model adapter without changing the API.
