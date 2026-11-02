@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from config import AGENT_HOST, AGENT_PORT
 from audit import init_audit, recent
-from agent_graph import agent_graph
+from graph_runtime import invoke
 from semantic import catalog
 
 class Handler(BaseHTTPRequestHandler):
@@ -23,7 +23,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get('Content-Length', '0')); payload = json.loads(self.rfile.read(length) or '{}'); question = str(payload.get('question', '')).strip()
             if not question: return self.json({'error': '请输入问题'}, 400)
-            result = agent_graph.invoke({'question': question, 'user_name': self.headers.get('X-Agent-User', '')})
+            thread_id = payload.get('thread_id') or self.headers.get('X-Agent-Thread', 'default')
+            result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id)
             return self.json({'ok': True, **result.get('result', {}), 'trace': result.get('trace', [])})
         except Exception as exc:
             return self.json({'ok': False, 'error': str(exc)}, 502)

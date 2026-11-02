@@ -49,10 +49,10 @@ def insight_node(state):
 def render_node(state):
     return {'result': {**state['result'], 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {})}, 'trace': _trace(state, 'render')}
 
-def build_graph():
+def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
     for name, node in [('router', router_node), ('semantic', semantic_node), ('planner', planner_node), ('policy', policy_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
     graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'planner'); graph.add_edge('planner', 'policy'); graph.add_edge('policy', 'tool_executor'); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 agent_graph = build_graph()
