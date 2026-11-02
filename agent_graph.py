@@ -7,6 +7,19 @@ from config import ENABLE_DEEPSEEK
 from model_adapter import OpenAICompatibleModel
 from metadata import knowledge_context
 
+def _has_explicit_time(question):
+    q = question or ''
+    return any(x in q for x in ('今天', '今日', '昨天', '昨日', '前一天', '近7天', '最近7天', '近七天', '最近七天', '近一周', '最近一周', '近30天', '最近30天', '本月', '202'))
+
+def _apply_business_constraints(question, intent):
+    """只校正高置信业务同义表达，避免模型偶发把“畅销”误判为利润。"""
+    q = question or ''
+    if any(x in q for x in ('畅销', '卖得好', '卖得最好', '热销', '热门商品', '热门产品')):
+        intent.update(metric='销售额', metric_field='actual_sales', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
+    if any(x in q for x in ('最赚钱', '赚钱最多', '利润最高', '盈利最好')):
+        intent.update(metric='利润', metric_field='profit', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
+    return intent
+
 class AgentState(TypedDict, total=False):
     question: str
     user_name: str
@@ -44,11 +57,11 @@ def semantic_node(state):
         metric = model_intent['metric']; metric_field = {'销售额':'actual_sales','利润':'profit','运营成本':'operating_cost','货品成本':'goods_cost','利润率':'profit'}[metric]
     if model_intent.get('dimension') in {'日期','部门','主管','组长','产品'}:
         dimension = model_intent['dimension']; dimension_field = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}[dimension]
-    if model_intent.get('time_type') in (None, 'latest_available') and not any(x in q for x in ('今天', '今日', '昨天', '昨日', '202')): dates = parse_date_range('当前数据')
+    if not _has_explicit_time(q): dates = parse_date_range('当前数据')
     # 高置信业务表达作为模型输出的最后校验，不扩展成全量关键词规则。
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
-    return {'intent': intent, 'trace': _trace(state, 'semantic')}
+    return {'intent': _apply_business_constraints(q, intent), 'trace': _trace(state, 'semantic')}
 
 def planner_node(state):
     intent = state['intent']; steps = ['读取指定日期范围的利润明细', '按指定维度聚合' if intent.get('dimension_field') else '计算指标汇总', '校验结果并生成解释']
@@ -64,10 +77,14 @@ def intent_validate_node(state):
             if corrected.get('dimension') in dims: intent.update(dimension=corrected['dimension'], dimension_field=dims[corrected['dimension']])
             for key in ('operation','sort','filters'):
                 if key in corrected: intent[key] = corrected[key]
-            if corrected.get('time_type') in (None, 'latest_available'): intent.update(parse_date_range('当前数据'))
+            # 日期必须尊重用户原话。模型若把“近七天”误判成 latest_available，不能覆盖已解析的相对日期。
+            if not _has_explicit_time(state['question']) and corrected.get('time_type') in (None, 'latest_available'):
+                intent.update(parse_date_range('当前数据'))
+            elif _has_explicit_time(state['question']):
+                intent.update(parse_date_range(state['question']))
         except Exception:
             pass
-    return {'intent': intent, 'trace': _trace(state, 'intent_validate')}
+    return {'intent': _apply_business_constraints(state['question'], intent), 'trace': _trace(state, 'intent_validate')}
 
 def policy_node(state):
     risky = any(x in state['question'] for x in ('删除', '导入', '修改', '更新数据', '清空'))

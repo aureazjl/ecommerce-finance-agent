@@ -22,6 +22,7 @@ class SemanticTests(unittest.TestCase):
     def test_yesterday(self): self.assertEqual(parse_date_range('昨天利润', date(2026, 11, 2))['start_date'], '2026-11-01')
     def test_today(self): self.assertEqual(parse_date_range('今天利润', date(2026, 11, 2))['start_date'], '2026-11-02')
     def test_last_7_days(self): self.assertEqual(parse_date_range('近7天销售额', date(2026, 11, 2)), {'start_date': '2026-10-26', 'end_date': '2026-11-01', 'source': 'relative'})
+    def test_last_7_days_chinese(self): self.assertEqual(parse_date_range('近七天哪些产品畅销', date(2026, 11, 2)), {'start_date': '2026-10-26', 'end_date': '2026-11-01', 'source': 'relative'})
     def test_last_30_days(self): self.assertEqual(parse_date_range('最近30天销售额', date(2026, 11, 2))['start_date'], '2026-10-03')
     def test_current_month(self): self.assertEqual(parse_date_range('本月利润', date(2026, 11, 2))['start_date'], '2026-11-01')
     def test_explicit_range(self): self.assertEqual(parse_date_range('2026/10/26到2026-10-27')['end_date'], '2026-10-27')

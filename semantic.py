@@ -44,7 +44,7 @@ def parse_date_range(question, today=None):
     if len(found) >= 2: return {'start_date': found[0], 'end_date': found[1], 'source': 'explicit'}
     if len(found) == 1: return {'start_date': found[0], 'end_date': found[0], 'source': 'explicit'}
     if '近30天' in question or '最近30天' in question: end = today - timedelta(days=1); return {'start_date': (end - timedelta(days=29)).isoformat(), 'end_date': end.isoformat(), 'source': 'relative'}
-    if '近7天' in question or '最近7天' in question: end = today - timedelta(days=1); return {'start_date': (end - timedelta(days=6)).isoformat(), 'end_date': end.isoformat(), 'source': 'relative'}
+    if any(x in question for x in ('近7天', '最近7天', '近七天', '最近七天', '近一周', '最近一周')): end = today - timedelta(days=1); return {'start_date': (end - timedelta(days=6)).isoformat(), 'end_date': end.isoformat(), 'source': 'relative'}
     if '本月' in question: return {'start_date': today.replace(day=1).isoformat(), 'end_date': today.isoformat(), 'source': 'relative'}
     key = next((key for key in DATE_ALIASES if key in question), '昨天')
     target = today if DATE_ALIASES[key] == 'today' else today - timedelta(days=1)
