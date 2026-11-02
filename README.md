@@ -20,6 +20,18 @@ run.cmd
 
 详细技术选型见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
+## DeepSeek 配置
+
+项目默认使用 DeepSeek 官方 OpenAI 兼容接口：
+
+```text
+MODEL_BASE_URL=https://api.deepseek.com
+MODEL_NAME=deepseek-chat
+MODEL_API_KEY=你的 DeepSeek API Key
+```
+
+请把配置写入本机环境变量或未提交的 `.env`，不要把 API Key 写入 GitHub。DeepSeek 官方文档确认其接口兼容 OpenAI 格式，基础地址为 `https://api.deepseek.com`。[官方文档](https://api-docs.deepseek.com/quick_start/agent_integrations/)
+
 面向小团队的电商利润表分析平台：上传 CSV/XLSX 后，后端清洗并累计保存到 SQLite，前端提供仪表盘、利润表、产品趋势和移动端查看。
 
 ## 给服务器智能体的直接部署提示词
