@@ -3,6 +3,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from engine import ask
 from semantic import match_dimension, match_metric, parse_date_range
+from config import ENABLE_DEEPSEEK
+from model_adapter import OpenAICompatibleModel
 
 class AgentState(TypedDict, total=False):
     question: str
@@ -22,6 +24,12 @@ def _trace(state, node, status='ok'):
 
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
+    if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
+        try:
+            model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是电商财务分析路由器。只返回 JSON，字段只能是 intent，取值 summary、ranking、comparison、diagnosis、trend、report、clarification。'}, {'role': 'user', 'content': q}])
+            intent = model_intent.get('intent', intent) if model_intent.get('intent') in {'summary','ranking','comparison','diagnosis','trend','report','clarification'} else intent
+        except Exception:
+            pass
     return {'intent': {'type': intent}, 'trace': _trace(state, 'router')}
 
 def semantic_node(state):
@@ -51,7 +59,14 @@ def verify_node(state):
     return {'verified': valid, 'errors': [] if valid else ['结果缺少意图、数据或来源'], 'trace': trace}
 
 def insight_node(state):
-    result = state['result']; return {'answer': result['answer'], 'trace': _trace(state, 'insight')}
+    result = state['result']; answer = result['answer']
+    if ENABLE_DEEPSEEK and state.get('use_model'):
+        try:
+            response = OpenAICompatibleModel().chat([{'role': 'system', 'content': '你是电商财务分析助手。只能根据用户问题和给定的真实结果回答，禁止编造数字。用简洁中文说明结论。'}, {'role': 'user', 'content': f"问题：{state['question']}\n真实结果：{result['rows']}\n基础结论：{answer}"}], temperature=0.1)
+            answer = response['choices'][0]['message']['content'].strip() or answer
+        except Exception:
+            pass
+    return {'answer': answer, 'result': {**result, 'answer': answer}, 'trace': _trace(state, 'insight')}
 
 def render_node(state):
     result = state['result']; rows = result.get('rows', []); intent = state.get('intent', {}); chart_type = 'bar' if intent.get('dimension_field') else 'metric'

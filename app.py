@@ -25,7 +25,7 @@ class Handler(BaseHTTPRequestHandler):
             thread_id = payload.get('thread_id') or self.headers.get('X-Agent-Thread', 'default')
             if path == '/api/agent/ask':
                 if not question: return self.json({'error': '请输入问题'}, 400)
-                result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id)
+                result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id, use_model=True)
             elif path == '/api/agent/resume': result = resume(thread_id, payload.get('decision', False))
             else: return self.json({'error': 'Not found'}, 404)
             return self.json({'ok': True, **result.get('result', {}), 'trace': result.get('trace', [])})
