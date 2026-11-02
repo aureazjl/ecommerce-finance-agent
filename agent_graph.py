@@ -26,7 +26,7 @@ def _trace(state, node, status='ok'):
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
     fallback_intent = {}
-    if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
+    if any(x in q for x in ('\u5356\u5f97\u597d', '\u5356\u5f97\u6700\u597d', '\u7545\u9500', '\u6700\u7545\u9500', '\u70ed\u9500', '\u70ed\u95e8', '\u9500\u91cf', '\u9500\u552e\u8868\u73b0')):
         intent = 'ranking'; fallback_intent = {'metric': '销售额', 'dimension': '产品', 'operation': 'ranking', 'sort': 'desc'}
     if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
         try:
@@ -50,6 +50,10 @@ def semantic_node(state):
     if model_intent.get('dimension') in {'日期','部门','主管','组长','产品'}:
         dimension = model_intent['dimension']; dimension_field = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}[dimension]
     if model_intent.get('time_type') == 'latest_available': dates = parse_date_range('当前数据')
+    # 高置信业务表达作为模型输出的最后校验，不扩展成全量关键词规则。
+    if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
+        metric, metric_field = '销售额', 'actual_sales'
+        dimension, dimension_field = dimension or '产品', dimension_field or 'product_name'
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     return {'intent': intent, 'trace': _trace(state, 'semantic')}
