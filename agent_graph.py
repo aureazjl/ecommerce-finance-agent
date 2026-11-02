@@ -5,6 +5,7 @@ from engine import ask
 from semantic import match_dimension, match_metric, parse_date_range
 from config import ENABLE_DEEPSEEK
 from model_adapter import OpenAICompatibleModel
+from metadata import knowledge_context
 
 class AgentState(TypedDict, total=False):
     question: str
@@ -24,17 +25,33 @@ def _trace(state, node, status='ok'):
 
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
+    fallback_intent = {}
+    if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
+        intent = 'ranking'; fallback_intent = {'metric': '销售额', 'dimension': '产品', 'operation': 'ranking', 'sort': 'desc'}
     if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
         try:
-            model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是电商财务分析路由器。只返回 JSON，字段只能是 intent，取值 summary、ranking、comparison、diagnosis、trend、report、clarification。'}, {'role': 'user', 'content': q}])
+            model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是电商经营分析意图解析器。只返回JSON。字段：intent(summary/ranking/comparison/diagnosis/trend/report/clarification)、metric(销售额/利润/运营成本/货品成本/利润率)、dimension(日期/部门/主管/组长/产品/null)、operation(summary/ranking/comparison/diagnosis/trend)、sort(desc/asc/null)、limit(1-100)、time_type(latest_available/today/yesterday/range/null)、filters(array)。业务语义必须遵守：热门产品、卖得好、畅销、销售表现优先表示按产品销售额；赚钱、盈利、利润贡献表示利润；成本高表示对应成本指标；当前数据、最近数据表示latest_available。不要编造字段。'}, {'role': 'user', 'content': f'问题：{q}\n可用业务元数据：{knowledge_context()}'}])
             intent = model_intent.get('intent', intent) if model_intent.get('intent') in {'summary','ranking','comparison','diagnosis','trend','report','clarification'} else intent
+            model_intent['intent'] = intent
+            # 对高置信业务词做冲突校验，避免模型把“卖得好/热门”误判为利润。
+            if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
+                model_intent['metric'] = '销售额'; model_intent['operation'] = 'ranking'; model_intent['sort'] = 'desc'
+                if not model_intent.get('dimension'): model_intent['dimension'] = '产品'
+            return {'intent': {'type': intent}, 'model_intent': model_intent, 'trace': _trace(state, 'router')}
         except Exception:
             pass
-    return {'intent': {'type': intent}, 'trace': _trace(state, 'router')}
+    return {'intent': {'type': intent}, 'model_intent': fallback_intent, 'trace': _trace(state, 'router')}
 
 def semantic_node(state):
     q = state['question']; metric, metric_field = match_metric(q); dimension, dimension_field = match_dimension(q); dates = parse_date_range(q)
+    model_intent = state.get('model_intent', {})
+    if model_intent.get('metric') in {'销售额','利润','运营成本','货品成本','利润率'}:
+        metric = model_intent['metric']; metric_field = {'销售额':'actual_sales','利润':'profit','运营成本':'operating_cost','货品成本':'goods_cost','利润率':'profit'}[metric]
+    if model_intent.get('dimension') in {'日期','部门','主管','组长','产品'}:
+        dimension = model_intent['dimension']; dimension_field = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}[dimension]
+    if model_intent.get('time_type') == 'latest_available': dates = parse_date_range('当前数据')
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
+    intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     return {'intent': intent, 'trace': _trace(state, 'semantic')}
 
 def planner_node(state):
@@ -50,7 +67,7 @@ def human_input_node(state):
     return {'confirmed': bool(decision), 'trace': _trace(state, 'human_input')}
 
 def tool_executor_node(state):
-    result = ask(state['question'], user_name=state.get('user_name', ''))
+    result = ask(state['question'], user_name=state.get('user_name', ''), normalized_intent=state.get('intent', {}))
     return {'result': result, 'trace': _trace(state, 'tool_executor')}
 
 def verify_node(state):

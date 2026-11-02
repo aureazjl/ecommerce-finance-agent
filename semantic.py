@@ -1,5 +1,6 @@
 import re
 from datetime import date, timedelta
+from metadata import latest_data_date
 
 METRICS = {
     '销售额': {'field': 'actual_sales', 'aliases': ['销售额', '销售', '营业额', '成交额', '实收销售额'], 'aggregation': 'sum', 'unit': '元'},
@@ -36,6 +37,9 @@ def match_dimension(question):
 
 def parse_date_range(question, today=None):
     question = normalize_question(question); today = today or date.today()
+    if any(x in question for x in ('当前数据', '最新数据', '最近数据', '目前数据')):
+        latest = latest_data_date()
+        if latest: return {'start_date': latest, 'end_date': latest, 'source': 'latest_available'}
     found = [x.replace('/', '-') for x in re.findall(r'20\d{2}[-/]\d{1,2}[-/]\d{1,2}', question)]
     if len(found) >= 2: return {'start_date': found[0], 'end_date': found[1], 'source': 'explicit'}
     if len(found) == 1: return {'start_date': found[0], 'end_date': found[0], 'source': 'explicit'}
