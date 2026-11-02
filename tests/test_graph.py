@@ -8,6 +8,8 @@ class GraphTests(unittest.TestCase):
         self.assertEqual(result['intent']['dimension'], '部门')
         self.assertEqual(result['intent']['metric'], '利润')
         self.assertGreaterEqual(len(result['trace']), 8)
+        self.assertIn('chart', result['result'])
+        self.assertIn('evidence', result['result'])
 
     def test_product_intent(self):
         result = agent_graph.invoke({'question': '昨天销售额按产品排名', 'user_name': 'test'})
