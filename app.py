@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from config import AGENT_HOST, AGENT_PORT
 from audit import init_audit, recent
-from graph_runtime import invoke
+from graph_runtime import invoke, resume
 from semantic import catalog
 
 class Handler(BaseHTTPRequestHandler):
@@ -19,12 +19,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/agent/audit': return self.json({'items': recent()})
         return self.json({'error': 'Not found'}, 404)
     def do_POST(self):
-        if urlparse(self.path).path != '/api/agent/ask': return self.json({'error': 'Not found'}, 404)
+        path = urlparse(self.path).path
         try:
             length = int(self.headers.get('Content-Length', '0')); payload = json.loads(self.rfile.read(length) or '{}'); question = str(payload.get('question', '')).strip()
-            if not question: return self.json({'error': '请输入问题'}, 400)
             thread_id = payload.get('thread_id') or self.headers.get('X-Agent-Thread', 'default')
-            result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id)
+            if path == '/api/agent/ask':
+                if not question: return self.json({'error': '请输入问题'}, 400)
+                result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id)
+            elif path == '/api/agent/resume': result = resume(thread_id, payload.get('decision', False))
+            else: return self.json({'error': 'Not found'}, 404)
             return self.json({'ok': True, **result.get('result', {}), 'trace': result.get('trace', [])})
         except Exception as exc:
             return self.json({'ok': False, 'error': str(exc)}, 502)

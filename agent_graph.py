@@ -1,5 +1,6 @@
 from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 from engine import ask
 from semantic import match_dimension, match_metric, parse_date_range
 
@@ -13,6 +14,7 @@ class AgentState(TypedDict, total=False):
     verified: bool
     answer: str
     errors: list[str]
+    confirmed: bool
     trace: list[dict[str, Any]]
 
 def _trace(state, node, status='ok'):
@@ -32,7 +34,12 @@ def planner_node(state):
     return {'plan': steps, 'trace': _trace(state, 'planner')}
 
 def policy_node(state):
-    return {'policy': {'allowed': True, 'mode': 'read_only', 'reason': '当前主图仅允许查询'}, 'trace': _trace(state, 'policy')}
+    risky = any(x in state['question'] for x in ('删除', '导入', '修改', '更新数据', '清空'))
+    return {'policy': {'allowed': not risky, 'mode': 'confirmation_required' if risky else 'read_only', 'reason': '高风险操作需要人工确认' if risky else '当前主图仅允许查询'}, 'trace': _trace(state, 'policy')}
+
+def human_input_node(state):
+    decision = interrupt({'type': 'confirmation_required', 'question': state['question'], 'message': '该操作可能改变数据，请确认后继续。'})
+    return {'confirmed': bool(decision), 'trace': _trace(state, 'human_input')}
 
 def tool_executor_node(state):
     result = ask(state['question'], user_name=state.get('user_name', ''))
@@ -53,8 +60,8 @@ def render_node(state):
 
 def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
-    for name, node in [('router', router_node), ('semantic', semantic_node), ('planner', planner_node), ('policy', policy_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
-    graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'planner'); graph.add_edge('planner', 'policy'); graph.add_edge('policy', 'tool_executor'); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
+    for name, node in [('router', router_node), ('semantic', semantic_node), ('planner', planner_node), ('policy', policy_node), ('human_input', human_input_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
+    graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'planner'); graph.add_edge('planner', 'policy'); graph.add_conditional_edges('policy', lambda s: 'human_input' if not s['policy']['allowed'] else 'tool_executor', {'human_input': 'human_input', 'tool_executor': 'tool_executor'}); graph.add_conditional_edges('human_input', lambda s: 'tool_executor' if s.get('confirmed') else END, {'tool_executor': 'tool_executor', END: END}); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
     return graph.compile(checkpointer=checkpointer)
 
 agent_graph = build_graph()
