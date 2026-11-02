@@ -5,6 +5,7 @@ from config import AGENT_HOST, AGENT_PORT
 from audit import init_audit, recent
 from graph_runtime import invoke, resume
 from semantic import catalog
+from metadata import knowledge_context
 
 def _interrupt_payload(result):
     items = result.get('__interrupt__') or []
@@ -34,6 +35,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == '/api/health': return self.json({'ok': True, 'service': 'ecommerce-finance-agent', 'version': '2.0'})
         if path == '/api/agent/catalog': return self.json(catalog())
+        if path == '/api/agent/metadata': return self.json(knowledge_context())
         if path == '/api/agent/audit': return self.json({'items': recent()})
         return self.json({'error': 'Not found'}, 404)
     def do_POST(self):

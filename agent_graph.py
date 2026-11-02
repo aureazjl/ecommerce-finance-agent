@@ -88,7 +88,7 @@ def insight_node(state):
 def render_node(state):
     result = state['result']; rows = result.get('rows', []); intent = state.get('intent', {}); chart_type = 'bar' if intent.get('dimension_field') else 'metric'
     chart = {'type': chart_type, 'x': 'name', 'y': 'value', 'title': f"{intent.get('metric', '指标')}按{intent.get('dimension') or '时间'}"}
-    return {'result': {**result, 'table': rows, 'chart': chart, 'evidence': {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension')}, 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {})}, 'trace': _trace(state, 'render')}
+    return {'result': {**result, 'table': rows, 'chart': chart, 'evidence': {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension')}, 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {}), 'confidence': 0.92 if result.get('source', {}).get('row_count', 0) else 0.35}, 'trace': _trace(state, 'render')}
 
 def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
