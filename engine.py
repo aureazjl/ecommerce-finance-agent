@@ -1,18 +1,9 @@
-import re, time, sqlite3
-from datetime import date, timedelta
+import time, sqlite3
 from config import DB_PATH
-from semantic import match_dimension, match_metric
+from semantic import match_dimension, match_metric, parse_date_range
 from audit import record
-def yesterday(): return (date.today() - timedelta(days=1)).isoformat()
-def resolve_dates(question):
-    found = re.findall(r'20\d{2}[-/]\d{1,2}[-/]\d{1,2}', question); found = [x.replace('/', '-') for x in found]
-    if len(found) >= 2: return found[0], found[1]
-    if '近7天' in question or '最近7天' in question:
-        end = date.today() - timedelta(days=1); return (end - timedelta(days=6)).isoformat(), end.isoformat()
-    if '今天' in question: return date.today().isoformat(), date.today().isoformat()
-    return yesterday(), yesterday()
 def ask(question, cookie='', user_name=''):
-    started = time.perf_counter(); metric_name, metric_field = match_metric(question); dimension_name, dimension_field = match_dimension(question); start, end = resolve_dates(question)
+    started = time.perf_counter(); metric_name, metric_field = match_metric(question); dimension_name, dimension_field = match_dimension(question); dates = parse_date_range(question); start, end = dates['start_date'], dates['end_date']
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
         rows = [dict(x) for x in db.execute('SELECT * FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? ORDER BY stat_date DESC, id', (start, end)).fetchall()]

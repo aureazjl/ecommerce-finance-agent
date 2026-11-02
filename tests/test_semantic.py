@@ -1,0 +1,34 @@
+import unittest
+from datetime import date
+from semantic import catalog, dimension_definition, match_dimension, match_metric, metric_definition, normalize_question, parse_date_range
+
+class SemanticTests(unittest.TestCase):
+    def test_normalize_space(self): self.assertEqual(normalize_question(' 昨天 销售额 '), '昨天销售额')
+    def test_sales(self): self.assertEqual(match_metric('昨天销售额'), ('销售额', 'actual_sales'))
+    def test_sales_alias(self): self.assertEqual(match_metric('营业额'), ('销售额', 'actual_sales'))
+    def test_sales_alias_two(self): self.assertEqual(match_metric('成交额'), ('销售额', 'actual_sales'))
+    def test_profit(self): self.assertEqual(match_metric('净利润多少'), ('利润', 'profit'))
+    def test_profit_alias(self): self.assertEqual(match_metric('盈利'), ('利润', 'profit'))
+    def test_cost(self): self.assertEqual(match_metric('运营费用'), ('运营成本', 'operating_cost'))
+    def test_goods_cost(self): self.assertEqual(match_metric('商品成本'), ('货品成本', 'goods_cost'))
+    def test_margin(self): self.assertEqual(match_metric('净利率'), ('利润率', 'profit'))
+    def test_default_metric(self): self.assertEqual(match_metric('今天表现如何'), ('利润', 'profit'))
+    def test_department(self): self.assertEqual(match_dimension('按部门分析'), ('部门', 'department'))
+    def test_team_alias(self): self.assertEqual(match_dimension('按团队分析'), ('部门', 'department'))
+    def test_manager(self): self.assertEqual(match_dimension('主管排名'), ('主管', 'manager'))
+    def test_leader(self): self.assertEqual(match_dimension('推广组长'), ('组长', 'promotion_leader'))
+    def test_product(self): self.assertEqual(match_dimension('商品利润'), ('产品', 'product_name'))
+    def test_unknown_dimension(self): self.assertEqual(match_dimension('整体汇总'), (None, None))
+    def test_yesterday(self): self.assertEqual(parse_date_range('昨天利润', date(2026, 11, 2))['start_date'], '2026-11-01')
+    def test_today(self): self.assertEqual(parse_date_range('今天利润', date(2026, 11, 2))['start_date'], '2026-11-02')
+    def test_last_7_days(self): self.assertEqual(parse_date_range('近7天销售额', date(2026, 11, 2)), {'start_date': '2026-10-26', 'end_date': '2026-11-01', 'source': 'relative'})
+    def test_last_30_days(self): self.assertEqual(parse_date_range('最近30天销售额', date(2026, 11, 2))['start_date'], '2026-10-03')
+    def test_current_month(self): self.assertEqual(parse_date_range('本月利润', date(2026, 11, 2))['start_date'], '2026-11-01')
+    def test_explicit_range(self): self.assertEqual(parse_date_range('2026/10/26到2026-10-27')['end_date'], '2026-10-27')
+    def test_explicit_single(self): self.assertEqual(parse_date_range('2026-10-27利润')['start_date'], '2026-10-27')
+    def test_metric_definition(self): self.assertEqual(metric_definition('利润')['aggregation'], 'sum')
+    def test_margin_definition(self): self.assertEqual(metric_definition('利润率')['denominator'], 'actual_sales')
+    def test_dimension_definition(self): self.assertEqual(dimension_definition('产品')['field'], 'product_name')
+    def test_catalog(self): self.assertIn('利润', catalog()['metrics']); self.assertIn('部门', catalog()['dimensions'])
+
+if __name__ == '__main__': unittest.main()
