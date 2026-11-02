@@ -1,0 +1,14 @@
+import React from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+const money = v => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(v || 0).replace('CN¥', '¥');
+const colors = ['#157a62', '#3d9d80', '#72bca2', '#9bd3bd', '#e8a36e', '#779bb5', '#9b86c6'];
+function point(cx, cy, r, a) { const rad = (a - 90) * Math.PI / 180; return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]; }
+
+export default function DepartmentPie({ items = [] }) {
+  const clean = items.filter(x => Number(x.value) > 0).sort((a, b) => b.value - a.value);
+  const total = clean.reduce((a, x) => a + x.value, 0), [active, setActive] = React.useState(null);
+  let angle = 0;
+  const parts = clean.map((x, i) => { const sweep = x.value / (total || 1) * 360, p1 = point(90, 90, 76, angle), p2 = point(90, 90, 76, angle + sweep), d = `M 90 90 L ${p1[0]} ${p1[1]} A 76 76 0 ${sweep > 180 ? 1 : 0} 1 ${p2[0]} ${p2[1]} Z`; angle += sweep; return { ...x, d, color: colors[i % colors.length], percent: x.value / (total || 1) * 100 }; });
+  if (!parts.length) return <Typography color="text.secondary">当前暂无部门业绩数据</Typography>;
+  return <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="center" gap={{ xs: 1, sm: 2.5 }} sx={{ width: '100%' }}><Box sx={{ position: 'relative', width: 280, height: 280, flexShrink: 0 }}><svg viewBox="0 0 180 180" width="280" height="280" role="img" aria-label="部门业绩"><circle cx="90" cy="90" r="76" fill="#eef7f2" />{parts.map((x, i) => <path key={x.label} d={x.d} fill={x.color} stroke="#fff" strokeWidth="2" style={{ cursor: 'pointer', opacity: active === null || active === i ? 1 : .45 }} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}><title>{`${x.label}：${money(x.value)}（${x.percent.toFixed(1)}%）`}</title></path>)}<circle cx="90" cy="90" r="38" fill="#fff" /><text x="90" y="85" textAnchor="middle" fontSize="11" fill="#17362c">{active === null ? '部门业绩' : parts[active].label}</text><text x="90" y="103" textAnchor="middle" fontSize="10" fill="#157a62">{active === null ? money(total) : `${money(parts[active].value)} ${parts[active].percent.toFixed(1)}%`}</text></svg></Box><Stack spacing={.8} sx={{ minWidth: 180 }}>{parts.map((x, i) => <Stack key={x.label} direction="row" alignItems="center" gap={.8} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)} sx={{ cursor: 'pointer', opacity: active === null || active === i ? 1 : .5 }}><Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: x.color, flexShrink: 0 }} /><Box sx={{ minWidth: 0 }}><Typography variant="caption" noWrap display="block">{x.label}</Typography><Typography variant="caption" color="text.secondary">{money(x.value)} · {x.percent.toFixed(1)}%</Typography></Box></Stack>)}</Stack></Stack>;
+}
