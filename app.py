@@ -6,6 +6,24 @@ from audit import init_audit, recent
 from graph_runtime import invoke, resume
 from semantic import catalog
 
+def _interrupt_payload(result):
+    items = result.get('__interrupt__') or []
+    if not items: return None
+    value = getattr(items[0], 'value', items[0])
+    return value if isinstance(value, dict) else {'message': str(value)}
+
+def _public_result(result):
+    payload = {'ok': True, **result.get('result', {}), 'trace': result.get('trace', [])}
+    interrupt_value = _interrupt_payload(result)
+    if interrupt_value: payload['interrupt'] = interrupt_value
+    return payload
+
+def _report_markdown(payload):
+    rows = payload.get('table', payload.get('rows', []))
+    lines = ['# 智能经营分析报告', '', f"结论：{payload.get('answer', '')}", '', '| 名称 | 数值 | 行数 |', '|---|---:|---:|']
+    lines += [f"| {r.get('name','')} | {r.get('value', 0)} | {r.get('rows','-')} |" for r in rows]
+    return '\n'.join(lines)
+
 class Handler(BaseHTTPRequestHandler):
     def json(self, value, status=200):
         body = json.dumps(value, ensure_ascii=False).encode('utf-8')
@@ -27,8 +45,12 @@ class Handler(BaseHTTPRequestHandler):
                 if not question: return self.json({'error': '请输入问题'}, 400)
                 result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id, use_model=True)
             elif path == '/api/agent/resume': result = resume(thread_id, payload.get('decision', False))
+            elif path == '/api/agent/report':
+                if not question: return self.json({'error': '请输入问题'}, 400)
+                result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id, use_model=True)
+                return self.json({'ok': True, 'report': _report_markdown(_public_result(result))})
             else: return self.json({'error': 'Not found'}, 404)
-            return self.json({'ok': True, **result.get('result', {}), 'trace': result.get('trace', [])})
+            return self.json(_public_result(result))
         except Exception as exc:
             return self.json({'ok': False, 'error': str(exc)}, 502)
 
