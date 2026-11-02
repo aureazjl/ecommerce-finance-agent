@@ -42,14 +42,8 @@ def semantic_node(state):
         metric = model_intent['metric']; metric_field = {'销售额':'actual_sales','利润':'profit','运营成本':'operating_cost','货品成本':'goods_cost','利润率':'profit'}[metric]
     if model_intent.get('dimension') in {'日期','部门','主管','组长','产品'}:
         dimension = model_intent['dimension']; dimension_field = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}[dimension]
-    if model_intent.get('time_type') == 'latest_available': dates = parse_date_range('当前数据')
+    if model_intent.get('time_type') in (None, 'latest_available') and not any(x in q for x in ('今天', '今日', '昨天', '昨日', '202')): dates = parse_date_range('当前数据')
     # 高置信业务表达作为模型输出的最后校验，不扩展成全量关键词规则。
-    if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
-        metric, metric_field = '销售额', 'actual_sales'
-        dimension, dimension_field = dimension or '产品', dimension_field or 'product_name'
-        model_intent['operation'] = 'ranking'
-    if dimension_field == 'product_name' and any(x in q for x in ('哪个', '哪些', '排行', '排名')):
-        model_intent['operation'] = 'ranking'
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     return {'intent': intent, 'trace': _trace(state, 'semantic')}
@@ -57,6 +51,21 @@ def semantic_node(state):
 def planner_node(state):
     intent = state['intent']; steps = ['读取指定日期范围的利润明细', '按指定维度聚合' if intent.get('dimension_field') else '计算指标汇总', '校验结果并生成解释']
     return {'plan': steps, 'trace': _trace(state, 'planner')}
+
+def intent_validate_node(state):
+    intent = dict(state.get('intent', {}))
+    if ENABLE_DEEPSEEK and state.get('use_model'):
+        try:
+            corrected = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是最终分析计划校验器。检查用户问题和候选计划是否匹配，只返回JSON：metric、dimension、operation、sort、time_type、limit、filters。把卖得最好、畅销、热门理解为产品销售额排名；把赚钱、盈利理解为产品利润排名；把为什么、原因、下降理解为诊断分析。没有明确日期时使用latest_available。'}, {'role': 'user', 'content': f'用户问题：{state["question"]}\n候选计划：{intent}'}])
+            metrics = {'销售额':'actual_sales','利润':'profit','运营成本':'operating_cost','货品成本':'goods_cost','利润率':'profit'}; dims = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}
+            if corrected.get('metric') in metrics: intent.update(metric=corrected['metric'], metric_field=metrics[corrected['metric']])
+            if corrected.get('dimension') in dims: intent.update(dimension=corrected['dimension'], dimension_field=dims[corrected['dimension']])
+            for key in ('operation','sort','filters'):
+                if key in corrected: intent[key] = corrected[key]
+            if corrected.get('time_type') in (None, 'latest_available'): intent.update(parse_date_range('当前数据'))
+        except Exception:
+            pass
+    return {'intent': intent, 'trace': _trace(state, 'intent_validate')}
 
 def policy_node(state):
     risky = any(x in state['question'] for x in ('删除', '导入', '修改', '更新数据', '清空'))
@@ -92,8 +101,8 @@ def render_node(state):
 
 def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
-    for name, node in [('router', router_node), ('semantic', semantic_node), ('planner', planner_node), ('policy', policy_node), ('human_input', human_input_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
-    graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'planner'); graph.add_edge('planner', 'policy'); graph.add_conditional_edges('policy', lambda s: 'human_input' if not s['policy']['allowed'] else 'tool_executor', {'human_input': 'human_input', 'tool_executor': 'tool_executor'}); graph.add_conditional_edges('human_input', lambda s: 'tool_executor' if s.get('confirmed') else END, {'tool_executor': 'tool_executor', END: END}); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
+    for name, node in [('router', router_node), ('semantic', semantic_node), ('intent_validate', intent_validate_node), ('planner', planner_node), ('policy', policy_node), ('human_input', human_input_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
+    graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'intent_validate'); graph.add_edge('intent_validate', 'planner'); graph.add_edge('planner', 'policy'); graph.add_conditional_edges('policy', lambda s: 'human_input' if not s['policy']['allowed'] else 'tool_executor', {'human_input': 'human_input', 'tool_executor': 'tool_executor'}); graph.add_conditional_edges('human_input', lambda s: 'tool_executor' if s.get('confirmed') else END, {'tool_executor': 'tool_executor', END: END}); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
     return graph.compile(checkpointer=checkpointer)
 
 agent_graph = build_graph()
