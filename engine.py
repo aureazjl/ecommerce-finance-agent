@@ -34,7 +34,7 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     if not result_rows: answer = f'{start} 至 {end} 没有可分析数据，最近有数据日期为 {latest_data_date() or "无"}。'
     elif ranking:
         top = result_rows[0]
-        answer = f'{start} 至 {end}，{dimension_name}中{metric_name}最高的是“{top["name"]”，数值为 {float(top["value"]):,.2f}。'
+        answer = f'{start} - {end}: top {dimension_name} {metric_name} is {top["name"]}, value {float(top["value"]):,.2f}.'
     elif diagnosis: answer = f'{start} 至 {end}，{metric_name}{diagnosis["direction"]}{abs(diagnosis["delta"]):,.2f}，当前 {diagnosis["current"]:,.2f}，对比期间 {diagnosis["previous"]:,.2f}。'
     else: answer = f'{start} 至 {end}，{metric_name}为 {total:,.2f}。'
     record(user_name, question, intent, 'finance.db:product_profit_daily', row_count, elapsed)
