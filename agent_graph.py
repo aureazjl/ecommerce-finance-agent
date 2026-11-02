@@ -10,6 +10,8 @@ from metadata import knowledge_context
 class AgentState(TypedDict, total=False):
     question: str
     user_name: str
+    use_model: bool
+    model_intent: dict[str, Any]
     intent: dict[str, Any]
     plan: list[str]
     policy: dict[str, Any]
