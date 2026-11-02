@@ -25,22 +25,15 @@ def _trace(state, node, status='ok'):
 
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
-    fallback_intent = {}
-    if any(x in q for x in ('\u5356\u5f97\u597d', '\u5356\u5f97\u6700\u597d', '\u7545\u9500', '\u6700\u7545\u9500', '\u70ed\u9500', '\u70ed\u95e8', '\u9500\u91cf', '\u9500\u552e\u8868\u73b0')) or ('\u6700\u597d' in q and dimension_field == 'product_name'):
-        intent = 'ranking'; fallback_intent = {'metric': '销售额', 'dimension': '产品', 'operation': 'ranking', 'sort': 'desc'}
     if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
         try:
-            model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是电商经营分析意图解析器。只返回JSON。字段：intent(summary/ranking/comparison/diagnosis/trend/report/clarification)、metric(销售额/利润/运营成本/货品成本/利润率)、dimension(日期/部门/主管/组长/产品/null)、operation(summary/ranking/comparison/diagnosis/trend)、sort(desc/asc/null)、limit(1-100)、time_type(latest_available/today/yesterday/range/null)、filters(array)。业务语义必须遵守：热门产品、卖得好、畅销、销售表现优先表示按产品销售额；赚钱、盈利、利润贡献表示利润；成本高表示对应成本指标；当前数据、最近数据表示latest_available。不要编造字段。'}, {'role': 'user', 'content': f'问题：{q}\n可用业务元数据：{knowledge_context()}'}])
+            model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是企业经营分析规划器，不是关键词分类器。把任意自然语言问题转换为可执行的结构化分析计划，只返回JSON。字段：intent(summary/ranking/comparison/diagnosis/trend/report/clarification)、metric(销售额/利润/运营成本/货品成本/利润率)、dimension(日期/部门/主管/组长/产品/null)、operation(summary/ranking/comparison/diagnosis/trend)、sort(desc/asc/null)、limit(1-100)、time_type(latest_available/today/yesterday/range/null)、filters(array)、steps(array)。根据语义推断，不要求用户使用字段原名。例：哪个产品畅销/卖得好的商品/热门商品 -> 产品+销售额+ranking；哪个产品最赚钱 -> 产品+利润+ranking；为什么利润下降 -> 利润+diagnosis；最近表现 -> latest_available。不要编造业务字段。'}, {'role': 'user', 'content': f'问题：{q}\n可用业务元数据：{knowledge_context()}'}])
             intent = model_intent.get('intent', intent) if model_intent.get('intent') in {'summary','ranking','comparison','diagnosis','trend','report','clarification'} else intent
             model_intent['intent'] = intent
-            # 对高置信业务词做冲突校验，避免模型把“卖得好/热门”误判为利润。
-            if any(x in q for x in ('卖得好', '畅销', '热销', '热门', '销量', '销售表现')):
-                model_intent['metric'] = '销售额'; model_intent['operation'] = 'ranking'; model_intent['sort'] = 'desc'
-                if not model_intent.get('dimension'): model_intent['dimension'] = '产品'
             return {'intent': {'type': intent}, 'model_intent': model_intent, 'trace': _trace(state, 'router')}
         except Exception:
             pass
-    return {'intent': {'type': intent}, 'model_intent': fallback_intent, 'trace': _trace(state, 'router')}
+    return {'intent': {'type': intent}, 'model_intent': {}, 'trace': _trace(state, 'router')}
 
 def semantic_node(state):
     q = state['question']; metric, metric_field = match_metric(q); dimension, dimension_field = match_dimension(q); dates = parse_date_range(q)

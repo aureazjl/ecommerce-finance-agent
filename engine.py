@@ -22,8 +22,6 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     normalized_intent = normalized_intent or {}
     metric_name = normalized_intent.get('metric', metric_name); metric_field = normalized_intent.get('metric_field', metric_field)
     dimension_name = normalized_intent.get('dimension', dimension_name); dimension_field = normalized_intent.get('dimension_field', dimension_field)
-    if normalized_intent.get('operation') == 'ranking' and dimension_field == 'product_name' and not any(x in question for x in ('利润', '赚钱', '盈利', '成本')):
-        metric_name, metric_field = '销售额', 'actual_sales'
     start = normalized_intent.get('start_date', start); end = normalized_intent.get('end_date', end)
     query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)))
     data = aggregate(query); result_rows = data['rows']; row_count = sum(int(x.get('rows', 0)) for x in result_rows) if dimension_field else len(result_rows)
@@ -34,7 +32,7 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     if not result_rows: answer = f'{start} 至 {end} 没有可分析数据，最近有数据日期为 {latest_data_date() or "无"}。'
     elif ranking:
         top = result_rows[0]
-        answer = f'{start} - {end}: top {dimension_name} {metric_name} is {top["name"]}, value {float(top["value"]):,.2f}.'
+        answer = f'{start} - {end}: {dimension_name} {metric_name} top is {top["name"]}, value {float(top["value"]):,.2f}.'
     elif diagnosis: answer = f'{start} 至 {end}，{metric_name}{diagnosis["direction"]}{abs(diagnosis["delta"]):,.2f}，当前 {diagnosis["current"]:,.2f}，对比期间 {diagnosis["previous"]:,.2f}。'
     else: answer = f'{start} 至 {end}，{metric_name}为 {total:,.2f}。'
     record(user_name, question, intent, 'finance.db:product_profit_daily', row_count, elapsed)
