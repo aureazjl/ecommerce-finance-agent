@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from config import AGENT_HOST, AGENT_PORT
 from audit import init_audit, recent, save_query, saved_queries
-from graph_runtime import invoke, resume
+from graph_runtime import invoke, invoke_stream, resume
 from semantic import catalog
 from metadata import knowledge_context
 
@@ -54,8 +54,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/agent/ask-stream':
                 self.send_response(200); self.send_header('Content-Type', 'text/event-stream; charset=utf-8'); self.send_header('Cache-Control', 'no-cache'); self.send_header('Connection', 'keep-alive'); self.send_header('Access-Control-Allow-Origin', 'http://127.0.0.1:5173'); self.end_headers()
                 def event(value): self.wfile.write(('data: ' + json.dumps(value, ensure_ascii=False) + '\n\n').encode('utf-8')); self.wfile.flush()
-                for stage in ('理解问题', '生成分析计划', '查询业务数据', '校验结果', '生成结论'): event({'type': 'progress', 'stage': stage})
-                result = invoke(question, user_name, thread_id, use_model=True); event({'type': 'result', **_public_result(result)}); event({'type': 'done'}); return
+                for item in invoke_stream(question, user_name, thread_id, use_model=True):
+                    if item.get('type') == 'final': event({'type': 'result', **_public_result(item['result'])})
+                    else: event(item)
+                event({'type': 'done'}); return
             if path == '/api/agent/ask':
                 if not question: return self.json({'error': '请输入问题'}, 400)
                 result = invoke(question, user_name, thread_id, use_model=True)
