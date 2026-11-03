@@ -2,7 +2,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from config import AGENT_HOST, AGENT_PORT
-from audit import init_audit, recent
+from audit import init_audit, recent, save_query, saved_queries
 from graph_runtime import invoke, resume
 from semantic import catalog
 from metadata import knowledge_context
@@ -38,15 +38,27 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/agent/metadata': return self.json(knowledge_context())
         if path == '/api/agent/audit': return self.json({'items': recent()})
         if path == '/api/agent/history': return self.json({'items': recent(50)})
+        if path == '/api/agent/saved': return self.json({'items': saved_queries(self.headers.get('X-Agent-User', ''))})
         return self.json({'error': 'Not found'}, 404)
     def do_POST(self):
         path = urlparse(self.path).path
         try:
             length = int(self.headers.get('Content-Length', '0')); payload = json.loads(self.rfile.read(length) or '{}'); question = str(payload.get('question', '')).strip()
             thread_id = payload.get('thread_id') or self.headers.get('X-Agent-Thread', 'default')
+            user_name = self.headers.get('X-Agent-User', '')
+            if path == '/api/agent/save':
+                result = payload.get('result') or {}
+                if not payload.get('question') or not result: return self.json({'error': '缺少要保存的问题或结果'}, 400)
+                save_query(user_name, str(payload.get('title') or payload.get('question'))[:80], str(payload['question']), result)
+                return self.json({'ok': True})
+            if path == '/api/agent/ask-stream':
+                self.send_response(200); self.send_header('Content-Type', 'text/event-stream; charset=utf-8'); self.send_header('Cache-Control', 'no-cache'); self.send_header('Connection', 'keep-alive'); self.send_header('Access-Control-Allow-Origin', 'http://127.0.0.1:5173'); self.end_headers()
+                def event(value): self.wfile.write(('data: ' + json.dumps(value, ensure_ascii=False) + '\n\n').encode('utf-8')); self.wfile.flush()
+                for stage in ('理解问题', '生成分析计划', '查询业务数据', '校验结果', '生成结论'): event({'type': 'progress', 'stage': stage})
+                result = invoke(question, user_name, thread_id, use_model=True); event({'type': 'result', **_public_result(result)}); event({'type': 'done'}); return
             if path == '/api/agent/ask':
                 if not question: return self.json({'error': '请输入问题'}, 400)
-                result = invoke(question, self.headers.get('X-Agent-User', ''), thread_id, use_model=True)
+                result = invoke(question, user_name, thread_id, use_model=True)
             elif path == '/api/agent/resume': result = resume(thread_id, payload.get('decision', False))
             elif path == '/api/agent/report':
                 if not question: return self.json({'error': '请输入问题'}, 400)
