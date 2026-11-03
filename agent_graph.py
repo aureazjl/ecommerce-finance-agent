@@ -73,7 +73,12 @@ def semantic_node(state):
         dimension = model_intent['dimension']; dimension_field = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}[dimension]
     if not _has_explicit_time(q): dates = parse_date_range('当前数据')
     # 高置信业务表达作为模型输出的最后校验，不扩展成全量关键词规则。
-    intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
+    metrics = []
+    if '利润' in q or '盈利' in q: metrics.append({'metric': '利润', 'metric_field': 'profit'})
+    if '成本' in q:
+        metrics.extend([{'metric': '运营成本', 'metric_field': 'operating_cost'}, {'metric': '货品成本', 'metric_field': 'goods_cost'}])
+    if len(metrics) > 1: metric = metrics[0]['metric']; metric_field = metrics[0]['metric_field']
+    intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'metrics': metrics, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     if _is_follow_up(q) and previous: intent.update(metric=metric, metric_field=metric_field, dimension=dimension, dimension_field=dimension_field, operation='diagnosis', start_date=previous.get('start_date', intent['start_date']), end_date=previous.get('end_date', intent['end_date']))
     return {'intent': _apply_business_constraints(q, intent), 'trace': _trace(state, 'semantic')}
@@ -112,7 +117,17 @@ def human_input_node(state):
     return {'confirmed': bool(decision), 'trace': _trace(state, 'human_input')}
 
 def tool_executor_node(state):
-    result = ask(state['question'], user_name=state.get('user_name', ''), normalized_intent=state.get('intent', {}))
+    intent = state.get('intent', {})
+    metrics = intent.get('metrics') or []
+    if len(metrics) <= 1:
+        result = ask(state['question'], user_name=state.get('user_name', ''), normalized_intent=intent)
+    else:
+        parts = []
+        for item in metrics:
+            part_intent = {**intent, **item}
+            part = ask(state['question'], user_name=state.get('user_name', ''), normalized_intent=part_intent)
+            parts.append({'metric': item['metric'], 'rows': part.get('rows', []), 'value': sum(float(x.get('value') or 0) for x in part.get('rows', [])), 'source': part.get('source', {})})
+        result = {'answer': '已分别查询利润、运营成本和货品成本。', 'intent': intent, 'rows': parts, 'diagnosis': None, 'source': {'database': 'finance.db', 'table': 'product_profit_daily', 'row_count': sum(int(x.get('source', {}).get('row_count', 0)) for x in parts), 'duration_ms': sum(int(x.get('source', {}).get('duration_ms', 0)) for x in parts)}}
     return {'result': result, 'trace': _trace(state, 'tool_executor')}
 
 def verify_node(state):
