@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import "./index.css";
 import "dayjs/locale/zh-cn";
 import "./styles/finance-date-range.css";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
