@@ -50,6 +50,15 @@ html {
   display: none;
 }
 
+/* 兼容 MUI TextField 的实际渲染结构，确保 Agent 输入区始终是同一行。 */
+.MuiPaper-root:has(> .MuiTextField-root) {
+  position: relative;
+}
+
+.MuiPaper-root:has(> .MuiTextField-root) > .MuiTextField-root + .MuiStack-root > .MuiChip-root {
+  display: none !important;
+}
+
 @media (min-width: 600px) {
   .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
     position: relative;
@@ -68,6 +77,22 @@ html {
   }
 
   .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiButton-root {
+    min-width: 88px;
+    height: 42px;
+  }
+
+  .MuiPaper-root:has(> .MuiTextField-root) {
+    padding-right: 116px;
+  }
+
+  .MuiPaper-root:has(> .MuiTextField-root) > .MuiTextField-root + .MuiStack-root {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin-top: 0 !important;
+  }
+
+  .MuiPaper-root:has(> .MuiTextField-root) > .MuiTextField-root + .MuiStack-root > .MuiButton-root {
     min-width: 88px;
     height: 42px;
   }
