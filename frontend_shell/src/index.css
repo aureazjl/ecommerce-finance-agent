@@ -52,6 +52,23 @@ html {
 
 /* Fallback for the generated MUI class tree: keep the submit control beside the field. */
 @media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding-right: 16px !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    position: static !important;
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+  }
+
   div:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
     position: relative;
     padding-right: 116px;
