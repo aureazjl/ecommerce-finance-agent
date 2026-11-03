@@ -1,4 +1,5 @@
 import sqlite3
+import time
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from agent_graph import build_graph
@@ -10,7 +11,7 @@ _checkpointer.setup()
 agent_graph = build_graph(_checkpointer)
 
 def invoke(question, user_name='', thread_id='default', use_model=False):
-    return agent_graph.invoke({'question': question, 'user_name': user_name, 'use_model': use_model}, {'configurable': {'thread_id': thread_id}})
+    return agent_graph.invoke({'question': question, 'user_name': user_name, 'use_model': use_model, 'trace': [], 'started_at': time.perf_counter()}, {'configurable': {'thread_id': thread_id}})
 
 def resume(thread_id, decision):
     return agent_graph.invoke(Command(resume=decision), {'configurable': {'thread_id': thread_id}})

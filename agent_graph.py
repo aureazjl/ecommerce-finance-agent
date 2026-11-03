@@ -1,4 +1,5 @@
 from typing import Any, TypedDict
+import time
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from engine import ask
@@ -26,6 +27,7 @@ class AgentState(TypedDict, total=False):
     use_model: bool
     model_intent: dict[str, Any]
     model_status: str
+    started_at: float
     intent: dict[str, Any]
     plan: list[str]
     policy: dict[str, Any]
@@ -37,7 +39,8 @@ class AgentState(TypedDict, total=False):
     trace: list[dict[str, Any]]
 
 def _trace(state, node, status='ok'):
-    return [*state.get('trace', []), {'node': node, 'status': status}]
+    elapsed = round((time.perf_counter() - state.get('started_at', time.perf_counter())) * 1000, 1)
+    return [*state.get('trace', []), {'node': node, 'status': status, 'duration_ms': elapsed}]
 
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
