@@ -45,9 +45,97 @@ html {
   scrollbar-color: #9e4673 #3d4a59;
 }
 
+/* Final live override: use a two-column grid for the prompt row. */
+@media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 12px !important;
+    padding: 20px 24px !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    position: static !important;
+    margin: 0 !important;
+  }
+}
+
+/* Last-resort override for the live Agent prompt DOM. */
+@media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 12px !important;
+    padding: 20px 24px !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    position: static !important;
+    margin: 0 !important;
+  }
+}
+
 /* Remove only clickable quick-question chips; status chips remain visible. */
 .MuiChip-root.MuiChip-clickable {
   display: none !important;
+}
+
+/* Higher-specificity override wins over legacy flex/absolute rules below. */
+@media (min-width: 600px) {
+  html body .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 12px !important;
+    padding: 20px 24px !important;
+  }
+  html body .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+  }
+  html body .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    position: static !important;
+    margin: 0 !important;
+  }
+}
+
+/* Final prompt layout: Paper children are TextField, action Stack, then progress Box. */
+@media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 12px !important;
+    padding: 20px 24px !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    position: static !important;
+    margin: 0 !important;
+  }
 }
 
 /* Fallback for the generated MUI class tree: keep the submit control beside the field. */
