@@ -45,6 +45,44 @@ html {
   scrollbar-color: #9e4673 #3d4a59;
 }
 
+/* Remove only clickable quick-question chips; status chips remain visible. */
+.MuiChip-root.MuiChip-clickable {
+  display: none !important;
+}
+
+/* The prompt controls are siblings in the MUI Paper. Keep only the submit button. */
+textarea[placeholder="例如：近七天哪些产品销量最好？"] ~ .MuiStack-root .MuiChip-root {
+  display: none !important;
+}
+@media (min-width: 600px) {
+  textarea[placeholder="例如：近七天哪些产品销量最好？"] ~ .MuiStack-root {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin-top: 0 !important;
+  }
+}
+
+/* MUI renders TextField as MuiFormControl-root, not MuiTextField-root. */
+.MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiChip-root {
+  display: none !important;
+}
+@media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    padding-right: 116px;
+    position: relative;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root {
+    width: 100%;
+  }
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin-top: 0 !important;
+  }
+}
+
 /* Agent 提问区：移除快捷问题按钮，提交按钮保持紧凑。 */
 .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiChip-root {
   display: none;
