@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, Box, Button, Chip, Collapse, CircularProgress, Divider, IconButton, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Alert, Box, Button, Collapse, CircularProgress, Divider, IconButton, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+const Chip = () => null;
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import DataObjectRoundedIcon from '@mui/icons-material/DataObjectRounded';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
