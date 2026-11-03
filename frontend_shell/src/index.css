@@ -19,3 +19,19 @@ html { scrollbar-color: #9e4673 #3d4a59; }
 }
 
 .MuiChip-root.MuiChip-clickable { display: none !important; }
+
+@media (min-width: 600px) {
+  .MuiPaper-root:has(> .MuiFormControl-root textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root .MuiInputBase-root {
+    height: 42px;
+    min-height: 42px;
+  }
+  .MuiPaper-root:has(> .MuiFormControl-root textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiFormControl-root textarea {
+    height: 22px !important;
+    min-height: 22px !important;
+    overflow: hidden !important;
+  }
+  .MuiPaper-root:has(> .MuiFormControl-root textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiButton-root {
+    height: 42px;
+    min-height: 42px;
+  }
+}
