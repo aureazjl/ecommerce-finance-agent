@@ -1,0 +1,20 @@
+{
+  "metrics": {
+    "销售额": {"field": "actual_sales", "aggregation": "sum", "aliases": ["销售", "销量", "营业额", "成交额", "卖得好", "畅销"]},
+    "利润": {"field": "profit", "aggregation": "sum", "aliases": ["盈利", "净利润", "赚钱"]},
+    "运营成本": {"field": "operating_cost", "aggregation": "sum", "aliases": ["运营费", "运营费用"]},
+    "货品成本": {"field": "goods_cost", "aggregation": "sum", "aliases": ["商品成本", "进货成本"]}
+  },
+  "dimensions": {
+    "产品": {"field": "product_name", "aliases": ["商品", "产品名称"]},
+    "部门": {"field": "department", "aliases": ["团队"]},
+    "主管": {"field": "manager", "aliases": ["负责人"]},
+    "组长": {"field": "promotion_leader", "aliases": ["推广组长"]},
+    "日期": {"field": "stat_date", "aliases": ["每天", "按天", "每日"]}
+  },
+  "question_examples": [
+    {"question": "近七天哪些产品销量最好", "metric": "销售额", "dimension": "产品", "operation": "ranking"},
+    {"question": "昨天哪个部门利润最低", "metric": "利润", "dimension": "部门", "operation": "ranking"},
+    {"question": "为什么利润下降", "metric": "利润", "operation": "diagnosis"}
+  ]
+}

@@ -1,4 +1,6 @@
 import re
+import json
+import os
 from datetime import date, timedelta
 from metadata import latest_data_date
 
@@ -19,6 +21,7 @@ DIMENSIONS = {
 }
 
 DATE_ALIASES = {'昨天': 'yesterday', '昨日': 'yesterday', '前一天': 'yesterday', '今天': 'today', '今日': 'today'}
+CATALOG_PATH = os.path.join(os.path.dirname(__file__), 'semantic_catalog.json')
 
 def normalize_question(question):
     return re.sub(r'\s+', '', str(question or '').strip()).lower()
@@ -52,4 +55,8 @@ def parse_date_range(question, today=None):
 
 def metric_definition(name): return METRICS[name]
 def dimension_definition(name): return DIMENSIONS[name]
-def catalog(): return {'metrics': METRICS, 'dimensions': DIMENSIONS, 'date_aliases': DATE_ALIASES}
+def catalog():
+    try:
+        with open(CATALOG_PATH, encoding='utf-8') as f: business = json.load(f)
+    except (OSError, json.JSONDecodeError): business = {}
+    return {'metrics': METRICS, 'dimensions': DIMENSIONS, 'date_aliases': DATE_ALIASES, 'business_catalog': business}
