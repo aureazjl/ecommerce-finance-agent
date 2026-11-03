@@ -50,6 +50,20 @@ html {
   display: none !important;
 }
 
+/* Fallback for the generated MUI class tree: keep the submit control beside the field. */
+@media (min-width: 600px) {
+  div:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    position: relative;
+    padding-right: 116px;
+  }
+  div:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > div[class*="MuiStack-root"] {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin-top: 0 !important;
+  }
+}
+
 /* The prompt controls are siblings in the MUI Paper. Keep only the submit button. */
 textarea[placeholder="例如：近七天哪些产品销量最好？"] ~ .MuiStack-root .MuiChip-root {
   display: none !important;
