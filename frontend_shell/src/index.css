@@ -46,12 +46,29 @@ html {
 }
 
 /* Agent 提问区：移除快捷问题按钮，提交按钮保持紧凑。 */
-.MuiTextField-root + .MuiStack-root > .MuiChip-clickable {
+.MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiChip-root {
   display: none;
 }
 
-.MuiTextField-root + .MuiStack-root > .MuiButton-root {
-  min-width: 88px;
-  height: 42px;
-  align-self: center;
+@media (min-width: 600px) {
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) {
+    position: relative;
+    padding-right: 116px;
+  }
+
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiTextField-root {
+    width: 100%;
+  }
+
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin-top: 0;
+  }
+
+  .MuiPaper-root:has(textarea[placeholder="例如：近七天哪些产品销量最好？"]) > .MuiStack-root > .MuiButton-root {
+    min-width: 88px;
+    height: 42px;
+  }
 }
