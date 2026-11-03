@@ -44,3 +44,14 @@
 html {
   scrollbar-color: #9e4673 #3d4a59;
 }
+
+/* Agent 提问区：移除快捷问题按钮，提交按钮保持紧凑。 */
+.MuiTextField-root + .MuiStack-root > .MuiChip-clickable {
+  display: none;
+}
+
+.MuiTextField-root + .MuiStack-root > .MuiButton-root {
+  min-width: 88px;
+  height: 42px;
+  align-self: center;
+}
