@@ -23,9 +23,15 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     metric_name = normalized_intent.get('metric', metric_name); metric_field = normalized_intent.get('metric_field', metric_field)
     dimension_name = normalized_intent.get('dimension', dimension_name); dimension_field = normalized_intent.get('dimension_field', dimension_field)
     start = normalized_intent.get('start_date', start); end = normalized_intent.get('end_date', end)
-    query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)))
+    query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)))
     data = aggregate(query); result_rows = data['rows']; row_count = sum(int(x.get('rows', 0)) for x in result_rows) if dimension_field else len(result_rows)
-    if not dimension_field: result_rows = [{'name': metric_name, 'value': round(sum(float(x.get(metric_field) or 0) for x in result_rows), 2), 'rows': row_count}]
+    if not dimension_field:
+        if metric_field == 'total_cost':
+            cost_fields = ('goods_cost', 'operating_cost', 'express_fee', 'onsite_promotion_fee', 'pugongying_fee', 'qianfan_fee', 'content_comment_fee', 'dou_plus_fee', 'props_competitor_fee', 'qa_fee', 'member_fee', 'other_fee')
+            total_value = sum(sum(float(x.get(field) or 0) for field in cost_fields) for x in result_rows)
+        else:
+            total_value = sum(float(x.get(metric_field) or 0) for x in result_rows)
+        result_rows = [{'name': metric_name, 'value': round(total_value, 2), 'rows': row_count}]
     total = round(sum(x['value'] for x in result_rows), 2) if dimension_field else result_rows[0]['value']; intent = {'metric': metric_name, 'metric_field': metric_field, 'dimension': dimension_name, 'dimension_field': dimension_field, 'start_date': start, 'end_date': end, 'limit': 10}; elapsed = int((time.perf_counter() - started) * 1000)
     diagnosis = _diagnosis(question, query, result_rows)
     ranking = normalized_intent.get('operation') == 'ranking' and dimension_field

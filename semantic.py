@@ -9,6 +9,7 @@ METRICS = {
     '利润': {'field': 'profit', 'aliases': ['利润', '净利润', '盈利', '赚了多少'], 'aggregation': 'sum', 'unit': '元'},
     '运营成本': {'field': 'operating_cost', 'aliases': ['运营成本', '运营费', '运营费用'], 'aggregation': 'sum', 'unit': '元'},
     '货品成本': {'field': 'goods_cost', 'aliases': ['货品成本', '商品成本', '进货成本'], 'aggregation': 'sum', 'unit': '元'},
+    '总成本': {'field': 'total_cost', 'aliases': ['成本', '总成本', '全部成本', '所有费用', '费用合计'], 'aggregation': 'sum', 'unit': '元'},
     '利润率': {'field': 'profit', 'aliases': ['利润率', '净利率'], 'aggregation': 'margin', 'unit': '%', 'numerator': 'profit', 'denominator': 'actual_sales'},
 }
 

@@ -4,12 +4,13 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from config import DB_PATH
 
 ALLOWED_DIMENSIONS = {'department', 'manager', 'promotion_leader', 'product_name', 'stat_date'}
-ALLOWED_METRICS = {'actual_sales', 'profit', 'operating_cost', 'goods_cost'}
+ALLOWED_METRICS = {'actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'}
+METRIC_SQL = {'actual_sales': 'actual_sales', 'profit': 'profit', 'operating_cost': 'operating_cost', 'goods_cost': 'goods_cost', 'total_cost': '(COALESCE(goods_cost,0)+COALESCE(operating_cost,0)+COALESCE(express_fee,0)+COALESCE(onsite_promotion_fee,0)+COALESCE(pugongying_fee,0)+COALESCE(qianfan_fee,0)+COALESCE(content_comment_fee,0)+COALESCE(dou_plus_fee,0)+COALESCE(props_competitor_fee,0)+COALESCE(qa_fee,0)+COALESCE(member_fee,0)+COALESCE(other_fee,0))'}
 
 class QueryArgs(BaseModel):
     start_date: str = Field(pattern=r'^20\d{2}-\d{2}-\d{2}$')
     end_date: str = Field(pattern=r'^20\d{2}-\d{2}-\d{2}$')
-    metric: Literal['actual_sales', 'profit', 'operating_cost', 'goods_cost'] = 'profit'
+    metric: Literal['actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'] = 'profit'
     dimension: str | None = None
     limit: int = Field(default=10, ge=1, le=100)
     @field_validator('dimension')
@@ -25,11 +26,12 @@ class QueryArgs(BaseModel):
 def query_rows(args: QueryArgs):
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
-        return [dict(x) for x in db.execute('SELECT stat_date,department,manager,promotion_leader,product_name,actual_sales,operating_cost,goods_cost,profit FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? ORDER BY stat_date DESC,id LIMIT ?', (args.start_date, args.end_date, args.limit)).fetchall()]
+        return [dict(x) for x in db.execute('SELECT stat_date,department,manager,promotion_leader,product_name,actual_sales,operating_cost,goods_cost,express_fee,onsite_promotion_fee,pugongying_fee,qianfan_fee,content_comment_fee,dou_plus_fee,props_competitor_fee,qa_fee,member_fee,other_fee,profit FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? ORDER BY stat_date DESC,id LIMIT ?', (args.start_date, args.end_date, args.limit)).fetchall()]
 
 def aggregate(args: QueryArgs):
     if not args.dimension: return {'rows': query_rows(args), 'metric': args.metric, 'dimension': None}
-    sql = f'SELECT COALESCE({args.dimension}, ?) AS name, SUM({args.metric}) AS value, COUNT(*) AS rows FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? GROUP BY {args.dimension} ORDER BY value DESC LIMIT ?'
+    expression = METRIC_SQL[args.metric]
+    sql = f'SELECT COALESCE({args.dimension}, ?) AS name, SUM({expression}) AS value, COUNT(*) AS rows FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? GROUP BY {args.dimension} ORDER BY value DESC LIMIT ?'
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
         rows = [dict(x) for x in db.execute(sql, ('未分类', args.start_date, args.end_date, args.limit)).fetchall()]

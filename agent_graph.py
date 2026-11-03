@@ -75,8 +75,8 @@ def semantic_node(state):
     # 高置信业务表达作为模型输出的最后校验，不扩展成全量关键词规则。
     metrics = []
     if '利润' in q or '盈利' in q: metrics.append({'metric': '利润', 'metric_field': 'profit'})
-    if '成本' in q:
-        metrics.extend([{'metric': '运营成本', 'metric_field': 'operating_cost'}, {'metric': '货品成本', 'metric_field': 'goods_cost'}])
+    if '成本' in q or '费用' in q:
+        metrics.append({'metric': '总成本', 'metric_field': 'total_cost'})
     if len(metrics) > 1: metric = metrics[0]['metric']; metric_field = metrics[0]['metric_field']
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'metrics': metrics, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
