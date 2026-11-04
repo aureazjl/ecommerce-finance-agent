@@ -37,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/agent/catalog': return self.json(catalog())
         if path == '/api/agent/metadata': return self.json(knowledge_context())
         if path == '/api/agent/audit': return self.json({'items': recent()})
-        if path == '/api/agent/history': return self.json({'items': saved_queries(self.headers.get('X-Agent-User', ''), 50)})
+        if path == '/api/agent/history': return self.json({'items': saved_queries(self.headers.get('X-Agent-User', ''), 3)})
         if path == '/api/agent/saved': return self.json({'items': saved_queries(self.headers.get('X-Agent-User', ''))})
         return self.json({'error': 'Not found'}, 404)
     def do_POST(self):

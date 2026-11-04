@@ -309,7 +309,6 @@ export default function Agent() {
   const [error, setError] = React.useState("");
   const [interrupt, setInterrupt] = React.useState(null);
   const [history, setHistory] = React.useState([]);
-  const [historySearch, setHistorySearch] = React.useState("");
   const [showTrace, setShowTrace] = React.useState(false);
   React.useEffect(() => {
     if (!busy) {
@@ -337,7 +336,7 @@ export default function Agent() {
                 !seen.has(item.question) &&
                 seen.add(item.question),
             )
-            .slice(0, 50)
+            .slice(0, 3)
             .map((item) => ({
               question: item.question,
               answer: "",
@@ -408,7 +407,7 @@ export default function Agent() {
                   result: event,
                 },
                 ...h.filter((item) => item.question !== q),
-              ].slice(0, 50),
+              ].slice(0, 3),
             );
           }
         }
@@ -420,7 +419,7 @@ export default function Agent() {
         [
           { question: q, answer: result.answer || "等待确认", result },
           ...h.filter((item) => item.question !== q),
-        ].slice(0, 50),
+        ].slice(0, 3),
       );
     } catch (e) {
       setError(e.name === "AbortError" ? "分析超过 60 秒，已停止等待，请稍后重试。" : e.message?.includes("Failed to fetch") ? "分析服务暂时无法连接，请检查服务或稍后重试。" : e.message || "分析失败，请稍后重试。");
@@ -490,17 +489,9 @@ export default function Agent() {
               <Typography variant="caption" color="text.secondary">
                 最近问题
               </Typography>
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="搜索历史问题"
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                sx={{ mt: 0.75, mb: 0.5 }}
-              />
               <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                 {history.length ? (
-                  history.filter((h) => !historySearch.trim() || h.question.includes(historySearch.trim())).map((h, i) => (
+                  history.map((h, i) => (
                     <Button
                       key={i}
                       size="small"
