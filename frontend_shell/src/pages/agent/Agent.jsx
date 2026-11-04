@@ -440,19 +440,6 @@ export default function Agent() {
     if (d.ok) setData(d);
     else setError(d.error || "确认失败");
   };
-  const saveCurrent = async () => {
-    if (!data) return;
-    const r = await fetch(`${AGENT_API}/api/agent/save`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: data.question || question,
-        question: data.question || question,
-        result: data,
-      }),
-    });
-    if (!r.ok) setError("保存分析失败");
-  };
   const rows = data?.table || data?.rows || [];
   const tableTotal = rows.reduce((sum, row) => sum + Math.abs(Number(row.value || 0)), 0) || 1;
   const trace = (data?.trace || []).filter((x) => coreNodes.has(x.node));
@@ -691,13 +678,6 @@ export default function Agent() {
                       onClick={() => setShowTrace((x) => !x)}
                     >
                       {showTrace ? "收起执行详情" : "查看执行详情"}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={saveCurrent}
-                    >
-                      保存分析
                     </Button>
                   </Stack>
                   <Collapse in={showTrace}>
