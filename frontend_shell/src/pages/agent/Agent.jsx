@@ -170,7 +170,7 @@ function ChartWithAxes({ rows, type }) {
         {type === "line" && items.length > 1 && <polyline points={items.map((row, index) => `${x(index)},${y(row.value)}`).join(" ")} fill="none" stroke="#157a62" strokeWidth="3" />}
         {items.map((row, index) => {
           const barX = plot.left + (index * plotWidth) / items.length + 12;
-          const barWidth = Math.max(18, plotWidth / items.length - 24);
+          const barWidth = 70;
           const yy = y(row.value);
           return <g key={row.name}>
             {type === "line" ? <circle cx={x(index)} cy={yy} r="5" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle> : <><rect x={barX} y={yy} width={barWidth} height={plot.top + plotHeight - yy} rx="4" fill={row.value < 0 ? "#c55a45" : "#157a62"}><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></rect><text x={barX + barWidth / 2} y={Math.max(plot.top + 12, yy - 6)} textAnchor="middle" fontSize="11" fill="#29483d">{row.value.toFixed(0)}</text></>}
