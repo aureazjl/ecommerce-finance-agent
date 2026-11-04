@@ -148,7 +148,7 @@ function Flow({ active, elapsed = 0, stageTimes = {} }) {
 }
 function ChartWithAxes({ rows, type }) {
   const items = rows.slice(0, 10).map((row) => ({ ...row, value: Number(row.value || 0) }));
-  const width = 760;
+  const width = Math.max(760, 64 + 30 + items.length * 70 + Math.max(items.length - 1, 0) * 18 + 24);
   const height = 300;
   const plot = { left: 64, right: 24, top: 24, bottom: 76 };
   const plotWidth = width - plot.left - plot.right;
@@ -160,8 +160,8 @@ function ChartWithAxes({ rows, type }) {
   const x = (index) => plot.left + ((index + 0.5) * plotWidth) / Math.max(items.length, 1);
   const y = (value) => plot.top + plotHeight - (Math.abs(value) / max) * plotHeight;
   return (
-    <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="300" role="img" aria-label="带坐标轴的产品数据图表">
+    <Box sx={{ width: "100%", maxWidth: 640, mx: "auto", overflowX: "auto" }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width={items.length > 7 ? width : "100%"} height="300" role="img" aria-label="带坐标轴的产品数据图表">
         {ticks.map((tick) => {
           const yy = plot.top + plotHeight * (1 - tick);
           return <g key={tick}><line x1={plot.left} x2={width - plot.right} y1={yy} y2={yy} stroke="#dce9e3" /><text x={plot.left - 8} y={yy + 4} textAnchor="end" fontSize="11" fill="#60756d">{(max * tick).toFixed(0)}</text></g>;
