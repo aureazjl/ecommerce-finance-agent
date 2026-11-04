@@ -531,7 +531,7 @@ export default function Agent() {
               </Stack>
             </Section>
           </Paper>
-          <Stack spacing={2} sx={{ minHeight: 0, height: { lg: "100%", xs: "auto" }, overflowY: { lg: "auto", xs: "visible" }, pr: { lg: 1, xs: 0 }, p: { lg: 2, xs: 0 }, bgcolor: { lg: "background.paper", xs: "transparent" }, borderRadius: 2, boxSizing: "border-box" }}>
+          <Stack spacing={2} sx={{ minHeight: 0, minWidth: 0, height: { lg: "100%", xs: "auto" }, overflowY: { lg: "auto", xs: "visible" }, overflowX: "hidden", overscrollBehavior: "contain", scrollbarGutter: "stable", pr: { lg: 1, xs: 0 }, p: { lg: 2, xs: 0 }, bgcolor: { lg: "background.paper", xs: "transparent" }, borderRadius: 2, boxSizing: "border-box", "&::-webkit-scrollbar:horizontal": { display: "none" } }}>
             <Paper sx={{ p: { xs: 1.5, sm: 2.5 } }}>
               <TextField
                 fullWidth
