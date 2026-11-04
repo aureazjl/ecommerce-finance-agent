@@ -94,7 +94,8 @@ def planner_node(state):
 
 def intent_validate_node(state):
     intent = dict(state.get('intent', {}))
-    if ENABLE_DEEPSEEK and state.get('use_model'):
+    # 常规问题已经由本地语义规则得到完整指标和维度时跳过二次模型校验，降低延迟。
+    if ENABLE_DEEPSEEK and state.get('use_model') and not (intent.get('metric_field') and intent.get('dimension_field')):
         try:
             corrected = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是最终分析计划校验器。检查用户问题和候选计划是否匹配，只返回JSON：metric、dimension、operation、sort、time_type、limit、filters。把卖得最好、畅销、热门理解为产品销售额排名；把赚钱、盈利理解为产品利润排名；把为什么、原因、下降理解为诊断分析。没有明确日期时使用latest_available。'}, {'role': 'user', 'content': f'用户问题：{state["question"]}\n候选计划：{intent}'}])
             metrics = {'销售额':'actual_sales','利润':'profit','运营成本':'operating_cost','货品成本':'goods_cost','利润率':'profit'}; dims = {'日期':'stat_date','部门':'department','主管':'manager','组长':'promotion_leader','产品':'product_name'}
