@@ -155,7 +155,7 @@ function ChartWithAxes({ rows, type }) {
   const plotHeight = height - plot.top - plot.bottom;
   const max = Math.max(...items.map((row) => Math.abs(row.value)), 1);
   const barGap = 18;
-  const barStart = plot.left;
+  const barStart = plot.left + 30;
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   const x = (index) => plot.left + ((index + 0.5) * plotWidth) / Math.max(items.length, 1);
   const y = (value) => plot.top + plotHeight - (Math.abs(value) / max) * plotHeight;
