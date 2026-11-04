@@ -154,6 +154,9 @@ function ChartWithAxes({ rows, type }) {
   const plotWidth = width - plot.left - plot.right;
   const plotHeight = height - plot.top - plot.bottom;
   const max = Math.max(...items.map((row) => Math.abs(row.value)), 1);
+  const barGap = 18;
+  const barGroupWidth = items.length * 70 + Math.max(items.length - 1, 0) * barGap;
+  const barStart = plot.left + Math.max(0, (plotWidth - barGroupWidth) / 2);
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   const x = (index) => plot.left + ((index + 0.5) * plotWidth) / Math.max(items.length, 1);
   const y = (value) => plot.top + plotHeight - (Math.abs(value) / max) * plotHeight;
@@ -169,12 +172,12 @@ function ChartWithAxes({ rows, type }) {
         <text x="14" y={plot.top + plotHeight / 2} transform={`rotate(-90 14 ${plot.top + plotHeight / 2})`} textAnchor="middle" fontSize="11" fill="#526b61">数值</text>
         {type === "line" && items.length > 1 && <polyline points={items.map((row, index) => `${x(index)},${y(row.value)}`).join(" ")} fill="none" stroke="#157a62" strokeWidth="3" />}
         {items.map((row, index) => {
-          const barX = plot.left + (index * plotWidth) / items.length + 12;
+          const barX = barStart + index * (70 + barGap);
           const barWidth = 70;
           const yy = y(row.value);
           return <g key={row.name}>
             {type === "line" ? <circle cx={x(index)} cy={yy} r="5" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle> : <><rect x={barX} y={yy} width={barWidth} height={plot.top + plotHeight - yy} rx="4" fill={row.value < 0 ? "#c55a45" : "#157a62"}><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></rect><text x={barX + barWidth / 2} y={Math.max(plot.top + 12, yy - 6)} textAnchor="middle" fontSize="11" fill="#29483d">{row.value.toFixed(0)}</text></>}
-            <text x={x(index)} y={height - 42} textAnchor="middle" fontSize="11" fill="#526b61" transform={`rotate(-28 ${x(index)} ${height - 42})`}>{row.name}</text>
+            <text x={barX + barWidth / 2} y={height - 42} textAnchor="middle" fontSize="11" fill="#526b61" transform={`rotate(-28 ${barX + barWidth / 2} ${height - 42})`}>{row.name}</text>
           </g>;
         })}
       </svg>
