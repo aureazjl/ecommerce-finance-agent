@@ -569,11 +569,10 @@ export default function Agent() {
                 />
                 {rows.length > 0 && (
                   <>
-                    <Typography variant="subtitle2" sx={{ mt: 2 }}>
-                      结果图表
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 0.75 }}>
+                      结果明细
                     </Typography>
-                    <DataChart rows={rows} initialType={data.chart?.type} />
-                    <Box sx={{ overflowX: "auto", mt: 1.5 }}>
+                    <Box sx={{ overflowX: "auto" }}>
                       <Table size="small" sx={{ maxWidth: 900, mx: "auto" }}>
                         <TableHead>
                           <TableRow>
@@ -606,6 +605,10 @@ export default function Agent() {
                         </TableBody>
                       </Table>
                     </Box>
+                    <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 0.5 }}>
+                      可视化趋势
+                    </Typography>
+                    <DataChart rows={rows} initialType={data.chart?.type} />
                   </>
                 )}
                 <Box sx={{ mt: 2 }}>
