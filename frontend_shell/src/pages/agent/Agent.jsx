@@ -310,6 +310,14 @@ export default function Agent() {
   const [interrupt, setInterrupt] = React.useState(null);
   const [history, setHistory] = React.useState([]);
   const [showTrace, setShowTrace] = React.useState(false);
+  const chartSectionRef = React.useRef(null);
+  React.useEffect(() => {
+    if (data?.table?.length) {
+      const timer = setTimeout(() => chartSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [data]);
   React.useEffect(() => {
     if (!busy) {
       startedAt.current = 0;
@@ -693,7 +701,7 @@ export default function Agent() {
                         </TableBody>
                       </Table>
                     </Box>
-                    <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 0.5 }}>
+                    <Typography ref={chartSectionRef} variant="subtitle2" sx={{ mt: 2.5, mb: 0.5 }}>
                       可视化趋势
                     </Typography>
                     <DataChart rows={rows} initialType={data.chart?.type} />
