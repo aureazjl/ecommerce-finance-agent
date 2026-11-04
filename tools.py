@@ -13,6 +13,7 @@ class QueryArgs(BaseModel):
     metric: Literal['actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'] = 'profit'
     dimension: str | None = None
     limit: int = Field(default=10, ge=1, le=100)
+    product_keyword: str | None = None
     @field_validator('dimension')
     @classmethod
     def valid_dimension(cls, value):
@@ -26,15 +27,23 @@ class QueryArgs(BaseModel):
 def query_rows(args: QueryArgs):
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
-        return [dict(x) for x in db.execute('SELECT stat_date,department,manager,promotion_leader,product_name,actual_sales,operating_cost,goods_cost,express_fee,onsite_promotion_fee,pugongying_fee,qianfan_fee,content_comment_fee,dou_plus_fee,props_competitor_fee,qa_fee,member_fee,other_fee,profit FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? ORDER BY stat_date DESC,id LIMIT ?', (args.start_date, args.end_date, args.limit)).fetchall()]
+        where = 'stat_date>=? AND stat_date<=?'; params = [args.start_date, args.end_date]
+        if args.product_keyword:
+            where += ' AND product_name LIKE ?'; params.append(f'%{args.product_keyword}%')
+        params.append(args.limit)
+        return [dict(x) for x in db.execute(f'SELECT stat_date,department,manager,promotion_leader,product_name,actual_sales,operating_cost,goods_cost,express_fee,onsite_promotion_fee,pugongying_fee,qianfan_fee,content_comment_fee,dou_plus_fee,props_competitor_fee,qa_fee,member_fee,other_fee,profit FROM product_profit_daily WHERE {where} ORDER BY stat_date DESC,id LIMIT ?', params).fetchall()]
 
 def aggregate(args: QueryArgs):
     if not args.dimension: return {'rows': query_rows(args), 'metric': args.metric, 'dimension': None}
     expression = METRIC_SQL[args.metric]
-    sql = f'SELECT COALESCE({args.dimension}, ?) AS name, SUM({expression}) AS value, COUNT(*) AS rows FROM product_profit_daily WHERE stat_date>=? AND stat_date<=? GROUP BY {args.dimension} ORDER BY value DESC LIMIT ?'
+    where = 'stat_date>=? AND stat_date<=?'; params = ['未分类', args.start_date, args.end_date]
+    if args.product_keyword:
+        where += ' AND product_name LIKE ?'; params.append(f'%{args.product_keyword}%')
+    params.append(args.limit)
+    sql = f'SELECT COALESCE({args.dimension}, ?) AS name, SUM({expression}) AS value, COUNT(*) AS rows FROM product_profit_daily WHERE {where} GROUP BY {args.dimension} ORDER BY value DESC LIMIT ?'
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
-        rows = [dict(x) for x in db.execute(sql, ('未分类', args.start_date, args.end_date, args.limit)).fetchall()]
+        rows = [dict(x) for x in db.execute(sql, params).fetchall()]
     return {'rows': rows, 'metric': args.metric, 'dimension': args.dimension}
 
 def compare(args: QueryArgs, previous_start: str, previous_end: str):

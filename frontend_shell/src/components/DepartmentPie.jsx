@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Stack, Typography } from '@mui/material';
+/* eslint-disable react-hooks/immutability */
 const money = v => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(v || 0).replace('CN¥', '¥');
 const colors = ['#157a62', '#3d9d80', '#72bca2', '#9bd3bd', '#e8a36e', '#779bb5', '#9b86c6'];
 function point(cx, cy, r, a) { const rad = (a - 90) * Math.PI / 180; return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]; }

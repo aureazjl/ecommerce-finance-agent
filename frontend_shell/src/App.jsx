@@ -9,6 +9,7 @@ import { Outlet } from "react-router";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
+/* eslint-disable react-refresh/only-export-components */
 
 export const API = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "http://127.0.0.1:18780" : "");
 

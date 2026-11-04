@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from metadata import latest_data_date
 
 METRICS = {
-    '销售额': {'field': 'actual_sales', 'aliases': ['销售额', '销售', '营业额', '成交额', '实收销售额'], 'aggregation': 'sum', 'unit': '元'},
+    '销售额': {'field': 'actual_sales', 'aliases': ['销售额', '销售', '销量', '营业额', '成交额', '实收销售额'], 'aggregation': 'sum', 'unit': '元'},
     '利润': {'field': 'profit', 'aliases': ['利润', '净利润', '盈利', '赚了多少'], 'aggregation': 'sum', 'unit': '元'},
     '运营成本': {'field': 'operating_cost', 'aliases': ['运营成本', '运营费', '运营费用'], 'aggregation': 'sum', 'unit': '元'},
     '货品成本': {'field': 'goods_cost', 'aliases': ['货品成本', '商品成本', '进货成本'], 'aggregation': 'sum', 'unit': '元'},
@@ -38,6 +38,21 @@ def match_dimension(question):
     for name, item in DIMENSIONS.items():
         if any(alias in question for alias in item['aliases']): return name, item['field']
     return None, None
+
+def is_business_question(question):
+    """Return true only when the question contains a finance/operation intent."""
+    question = normalize_question(question)
+    aliases = [alias for item in METRICS.values() for alias in item['aliases']]
+    aliases += [alias for item in DIMENSIONS.values() for alias in item['aliases']]
+    business_terms = ('经营', '业绩', '表现', '数据', '分析', '排名', '趋势', '同比', '环比', '下降', '上涨', '最低', '最高', '多少', '哪个', '香水', '洗发水', '电吹风')
+    return any(x in question for x in aliases + list(business_terms))
+
+def extract_product_keyword(question):
+    question = normalize_question(question)
+    for keyword in ('香水', '洗发水', '电吹风'):
+        if keyword in question:
+            return keyword
+    return None
 
 def parse_date_range(question, today=None):
     question = normalize_question(question); today = today or date.today()

@@ -3,7 +3,7 @@ import time
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from engine import ask
-from semantic import match_dimension, match_metric, parse_date_range
+from semantic import extract_product_keyword, is_business_question, match_dimension, match_metric, parse_date_range
 from config import ENABLE_DEEPSEEK
 from model_adapter import OpenAICompatibleModel
 from metadata import knowledge_context
@@ -19,7 +19,7 @@ def _is_follow_up(question):
 def _apply_business_constraints(question, intent):
     """只校正高置信业务同义表达，避免模型偶发把“畅销”误判为利润。"""
     q = question or ''
-    if any(x in q for x in ('畅销', '卖得好', '卖得最好', '销量最好', '销量最高', '热销', '热门商品', '热门产品')):
+    if any(x in q for x in ('畅销', '卖得好', '卖得最好', '销量好', '销量最好', '销量最高', '热销', '热门商品', '热门产品')):
         intent.update(metric='销售额', metric_field='actual_sales', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
     if any(x in q for x in ('最赚钱', '赚钱最多', '利润最高', '盈利最好')):
         intent.update(metric='利润', metric_field='profit', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
@@ -43,6 +43,7 @@ class AgentState(TypedDict, total=False):
     errors: list[str]
     confirmed: bool
     trace: list[dict[str, Any]]
+    relevant: bool
 
 def _trace(state, node, status='ok'):
     elapsed = round((time.perf_counter() - state.get('started_at', time.perf_counter())) * 1000, 1)
@@ -50,15 +51,17 @@ def _trace(state, node, status='ok'):
 
 def router_node(state):
     q = state['question']; intent = 'ranking' if any(x in q for x in ('排名', '最高', '最低', '最多', '最少')) else 'summary'
+    if not is_business_question(q):
+        return {'intent': {'type': 'clarification'}, 'model_intent': {}, 'model_status': 'disabled', 'relevant': False, 'trace': _trace(state, 'router[无业务意图]')}
     if ENABLE_DEEPSEEK and state.get('use_model') and not state.get('model_intent'):
         try:
             model_intent = OpenAICompatibleModel().json([{'role': 'system', 'content': '你是企业经营分析规划器，不是关键词分类器。把任意自然语言问题转换为可执行的结构化分析计划，只返回JSON。字段：intent(summary/ranking/comparison/diagnosis/trend/report/clarification)、metric(销售额/利润/运营成本/货品成本/利润率)、dimension(日期/部门/主管/组长/产品/null)、operation(summary/ranking/comparison/diagnosis/trend)、sort(desc/asc/null)、limit(1-100)、time_type(latest_available/today/yesterday/range/null)、filters(array)、steps(array)。根据语义推断，不要求用户使用字段原名。例：哪个产品畅销/卖得好的商品/热门商品 -> 产品+销售额+ranking；哪个产品最赚钱 -> 产品+利润+ranking；为什么利润下降 -> 利润+diagnosis；最近表现 -> latest_available。若本轮问题省略了主体，继承会话上下文。不要编造业务字段。'}, {'role': 'user', 'content': f'问题：{q}\n会话上下文：{state.get("conversation_context", "无")}\n可用业务元数据：{knowledge_context()}'}])
             intent = model_intent.get('intent', intent) if model_intent.get('intent') in {'summary','ranking','comparison','diagnosis','trend','report','clarification'} else intent
             model_intent['intent'] = intent
-            return {'intent': {'type': intent}, 'model_intent': model_intent, 'model_status': 'called', 'trace': _trace(state, 'router[DeepSeek]')}
+            return {'intent': {'type': intent}, 'model_intent': model_intent, 'model_status': 'called', 'relevant': True, 'trace': _trace(state, 'router[DeepSeek]')}
         except Exception:
-            return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'fallback', 'trace': _trace(state, 'router[本地兜底]','fallback')}
-    return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'disabled', 'trace': _trace(state, 'router[本地兜底]','fallback')}
+            return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'fallback', 'relevant': True, 'trace': _trace(state, 'router[本地兜底]','fallback')}
+    return {'intent': {'type': intent}, 'model_intent': {}, 'model_status': 'disabled', 'relevant': True, 'trace': _trace(state, 'router[本地兜底]','fallback')}
 
 def semantic_node(state):
     q = state['question']; metric, metric_field = match_metric(q); dimension, dimension_field = match_dimension(q); dates = parse_date_range(q)
@@ -78,7 +81,9 @@ def semantic_node(state):
     if '成本' in q or '费用' in q:
         metrics.append({'metric': '总成本', 'metric_field': 'total_cost'})
     if len(metrics) > 1: metric = metrics[0]['metric']; metric_field = metrics[0]['metric_field']
-    intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'metrics': metrics, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10}
+    if dimension is None and (any(x in q for x in ('柱形图', '柱状图', '条形图', '图表', '表格')) or '销量' in q or any(x in q for x in ('畅销', '卖得好', '热销', '热门商品', '热门产品'))):
+        dimension, dimension_field = '产品', 'product_name'
+    intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'metrics': metrics, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10, 'product_keyword': extract_product_keyword(q) or model_intent.get('product_keyword')}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})
     if _is_follow_up(q) and previous: intent.update(metric=metric, metric_field=metric_field, dimension=dimension, dimension_field=dimension_field, operation='diagnosis', start_date=previous.get('start_date', intent['start_date']), end_date=previous.get('end_date', intent['end_date']))
     return {'intent': _apply_business_constraints(q, intent), 'trace': _trace(state, 'semantic')}
@@ -112,6 +117,9 @@ def policy_node(state):
     risky = any(x in state['question'] for x in ('删除', '导入', '修改', '更新数据', '清空'))
     return {'policy': {'allowed': not risky, 'mode': 'confirmation_required' if risky else 'read_only', 'reason': '高风险操作需要人工确认' if risky else '当前主图仅允许查询'}, 'trace': _trace(state, 'policy')}
 
+def clarification_node(state):
+    return {'result': {'answer': '这个问题与经营数据分析无关。请询问销售额、利润、成本、部门、产品或日期等业务数据。', 'intent': state.get('intent', {}), 'rows': [], 'source': {'database': 'finance.db', 'table': 'product_profit_daily', 'row_count': 0, 'duration_ms': 0}}, 'trace': _trace(state, 'clarification')}
+
 def human_input_node(state):
     decision = interrupt({'type': 'confirmation_required', 'question': state['question'], 'message': '该操作可能改变数据，请确认后继续。'})
     return {'confirmed': bool(decision), 'trace': _trace(state, 'human_input')}
@@ -142,19 +150,22 @@ def insight_node(state):
             response = OpenAICompatibleModel().chat([{'role': 'system', 'content': '你是电商财务分析助手。只能根据用户问题和给定的真实结果回答，禁止编造数字。用简洁中文说明结论。'}, {'role': 'user', 'content': f"问题：{state['question']}\n真实结果：{result['rows']}\n基础结论：{answer}"}], temperature=0.1)
             answer = response['choices'][0]['message']['content'].strip() or answer
         except Exception:
-            pass
+            return {'answer': answer, 'result': {**result, 'answer': answer}, 'model_status': 'fallback', 'trace': _trace(state, 'insight[本地兜底]', 'fallback')}
     return {'answer': answer, 'result': {**result, 'answer': answer}, 'trace': _trace(state, 'insight')}
 
 def render_node(state):
-    result = state['result']; rows = result.get('rows', []); intent = state.get('intent', {}); chart_type = 'bar' if intent.get('dimension_field') else 'metric'
+    result = state['result']; rows = result.get('rows', []); intent = state.get('intent', {}); question = state.get('question', '')
+    chart_type = 'line' if intent.get('dimension') == '日期' or any(x in question for x in ('趋势', '变化')) else 'pie' if any(x in question for x in ('占比', '构成', '分布')) else 'bar'
     chart = {'type': chart_type, 'x': 'name', 'y': 'value', 'title': f"{intent.get('metric', '指标')}按{intent.get('dimension') or '时间'}"}
     follow_ups = [f'为什么{intent.get("metric", "指标")}会这样？', '按部门重新比较', '查看明细数据']
-    return {'result': {**result, 'question': state.get('question', ''), 'table': rows, 'chart': chart, 'evidence': {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension')}, 'model': {'provider': 'DeepSeek' if state.get('model_status') == 'called' else 'local_fallback', 'status': state.get('model_status', 'unknown')}, 'model_status': state.get('model_status', 'unknown'), 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {}), 'follow_ups': follow_ups, 'confidence': 0.92 if result.get('source', {}).get('row_count', 0) else 0.35}, 'trace': _trace(state, 'render')}
+    source = result.get('source', {}); status = state.get('model_status', 'unknown')
+    evidence = {'date_range': [intent.get('start_date'), intent.get('end_date')], 'metric': intent.get('metric'), 'dimension': intent.get('dimension'), 'product_keyword': intent.get('product_keyword'), 'row_count': source.get('row_count', 0), 'duration_ms': source.get('duration_ms', 0)}
+    return {'result': {**result, 'question': question, 'table': rows, 'chart': chart, 'evidence': evidence, 'model': {'provider': 'ChatGPT' if status == 'called' else 'local_fallback', 'status': status}, 'model_status': status, 'trace': state.get('trace', []), 'plan': state.get('plan', []), 'policy': state.get('policy', {}), 'follow_ups': follow_ups, 'confidence': 0.92 if source.get('row_count', 0) else 0.35}, 'trace': _trace(state, 'render')}
 
 def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
-    for name, node in [('router', router_node), ('semantic', semantic_node), ('intent_validate', intent_validate_node), ('planner', planner_node), ('policy', policy_node), ('human_input', human_input_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
-    graph.add_edge(START, 'router'); graph.add_edge('router', 'semantic'); graph.add_edge('semantic', 'intent_validate'); graph.add_edge('intent_validate', 'planner'); graph.add_edge('planner', 'policy'); graph.add_conditional_edges('policy', lambda s: 'human_input' if not s['policy']['allowed'] else 'tool_executor', {'human_input': 'human_input', 'tool_executor': 'tool_executor'}); graph.add_conditional_edges('human_input', lambda s: 'tool_executor' if s.get('confirmed') else END, {'tool_executor': 'tool_executor', END: END}); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') else END, {'insight': 'insight', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
+    for name, node in [('router', router_node), ('semantic', semantic_node), ('intent_validate', intent_validate_node), ('planner', planner_node), ('policy', policy_node), ('clarification', clarification_node), ('human_input', human_input_node), ('tool_executor', tool_executor_node), ('verify', verify_node), ('insight', insight_node), ('render', render_node)]: graph.add_node(name, node)
+    graph.add_edge(START, 'router'); graph.add_conditional_edges('router', lambda s: 'semantic' if s.get('relevant', True) else 'clarification', {'semantic': 'semantic', 'clarification': 'clarification'}); graph.add_edge('semantic', 'intent_validate'); graph.add_edge('intent_validate', 'planner'); graph.add_edge('planner', 'policy'); graph.add_conditional_edges('policy', lambda s: 'human_input' if not s['policy']['allowed'] else 'tool_executor', {'human_input': 'human_input', 'tool_executor': 'tool_executor'}); graph.add_conditional_edges('human_input', lambda s: 'tool_executor' if s.get('confirmed') else END, {'tool_executor': 'tool_executor', END: END}); graph.add_edge('clarification', 'verify'); graph.add_edge('tool_executor', 'verify'); graph.add_conditional_edges('verify', lambda s: 'insight' if s.get('verified') and s.get('relevant', True) else 'render' if s.get('verified') else END, {'insight': 'insight', 'render': 'render', END: END}); graph.add_edge('insight', 'render'); graph.add_edge('render', END)
     return graph.compile(checkpointer=checkpointer)
 
 agent_graph = build_graph()

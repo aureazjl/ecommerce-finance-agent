@@ -94,7 +94,7 @@ function renderEventContent(eventInfo) {
   );
 }
 
-function Sidebar({ weekendsVisible, handleWeekendsToggle, currentEvents }) {
+function Sidebar({ currentEvents }) {
   return (
     <Stack direction="row">
       <Paper className="demo-app-sidebar">

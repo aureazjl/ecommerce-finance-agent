@@ -2,6 +2,7 @@ import * as React from 'react';
 import { API } from './App';
 import App from './App';
 import Login from './pages/auth/Login';
+/* eslint-disable react-hooks/immutability */
 
 class AppErrorBoundary extends React.Component {
   state = { error: null };

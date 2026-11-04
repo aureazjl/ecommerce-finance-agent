@@ -1,7 +1,7 @@
 import time
 from datetime import date, timedelta
 from config import DB_PATH
-from semantic import match_dimension, match_metric, parse_date_range
+from semantic import extract_product_keyword, match_dimension, match_metric, parse_date_range
 from tools import QueryArgs, aggregate
 from audit import record
 from metadata import latest_data_date
@@ -23,7 +23,8 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
     metric_name = normalized_intent.get('metric', metric_name); metric_field = normalized_intent.get('metric_field', metric_field)
     dimension_name = normalized_intent.get('dimension', dimension_name); dimension_field = normalized_intent.get('dimension_field', dimension_field)
     start = normalized_intent.get('start_date', start); end = normalized_intent.get('end_date', end)
-    query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)))
+    product_keyword = normalized_intent.get('product_keyword') or extract_product_keyword(question)
+    query = QueryArgs(start_date=start, end_date=end, metric=metric_field if metric_field in {'actual_sales', 'profit', 'operating_cost', 'goods_cost', 'total_cost'} else 'profit', dimension=dimension_field, limit=int(normalized_intent.get('limit', 10)), product_keyword=product_keyword)
     data = aggregate(query); result_rows = data['rows']; row_count = sum(int(x.get('rows', 0)) for x in result_rows) if dimension_field else len(result_rows)
     if not dimension_field:
         if metric_field == 'total_cost':
@@ -32,7 +33,7 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
         else:
             total_value = sum(float(x.get(metric_field) or 0) for x in result_rows)
         result_rows = [{'name': metric_name, 'value': round(total_value, 2), 'rows': row_count}]
-    total = round(sum(x['value'] for x in result_rows), 2) if dimension_field else result_rows[0]['value']; intent = {'metric': metric_name, 'metric_field': metric_field, 'dimension': dimension_name, 'dimension_field': dimension_field, 'start_date': start, 'end_date': end, 'limit': 10}; elapsed = int((time.perf_counter() - started) * 1000)
+    total = round(sum(x['value'] for x in result_rows), 2) if dimension_field else result_rows[0]['value']; intent = {'metric': metric_name, 'metric_field': metric_field, 'dimension': dimension_name, 'dimension_field': dimension_field, 'start_date': start, 'end_date': end, 'limit': 10, 'product_keyword': product_keyword}; elapsed = int((time.perf_counter() - started) * 1000)
     diagnosis = _diagnosis(question, query, result_rows)
     ranking = normalized_intent.get('operation') == 'ranking' and dimension_field
     if not result_rows: answer = f'{start} 至 {end} 没有可分析数据，最近有数据日期为 {latest_data_date() or "无"}。'

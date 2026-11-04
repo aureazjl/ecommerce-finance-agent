@@ -1,6 +1,6 @@
 import json
 from urllib.request import Request, urlopen
-from config import MODEL_API_KEY, MODEL_BASE_URL, MODEL_NAME
+from config import MODEL_API_KEY, MODEL_BASE_URL, MODEL_NAME, MODEL_TIMEOUT_SECONDS
 
 class OpenAICompatibleModel:
     def __init__(self, base_url=MODEL_BASE_URL, api_key=MODEL_API_KEY, model=MODEL_NAME): self.base_url, self.api_key, self.model = base_url.rstrip('/'), api_key, model
@@ -12,7 +12,7 @@ class OpenAICompatibleModel:
         if response_format: payload['response_format'] = response_format
         body = json.dumps(payload).encode('utf-8'); headers = {'Content-Type': 'application/json'}
         if self.api_key: headers['Authorization'] = f'Bearer {self.api_key}'
-        with urlopen(Request(self.base_url + '/chat/completions', data=body, headers=headers, method='POST'), timeout=60) as response: return json.loads(response.read().decode('utf-8'))
+        with urlopen(Request(self.base_url + '/chat/completions', data=body, headers=headers, method='POST'), timeout=MODEL_TIMEOUT_SECONDS) as response: return json.loads(response.read().decode('utf-8'))
     def json(self, messages):
         data = self.chat(messages, temperature=0, response_format={'type': 'json_object'})
         return json.loads(data['choices'][0]['message']['content'])

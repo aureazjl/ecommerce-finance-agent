@@ -16,4 +16,5 @@ CHECKPOINT_DB = os.getenv('AGENT_CHECKPOINT_DB', os.path.join(os.path.dirname(__
 MODEL_BASE_URL = os.getenv('MODEL_BASE_URL', 'https://api.deepseek.com').rstrip('/')
 MODEL_API_KEY = os.getenv('MODEL_API_KEY', '')
 MODEL_NAME = os.getenv('MODEL_NAME', 'deepseek-chat')
+MODEL_TIMEOUT_SECONDS = float(os.getenv('MODEL_TIMEOUT_SECONDS', '20'))
 ENABLE_DEEPSEEK = os.getenv('ENABLE_DEEPSEEK', 'true').lower() == 'true'
