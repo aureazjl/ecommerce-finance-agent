@@ -582,6 +582,32 @@ export default function Agent() {
                 </Box>
               )}
             </Paper>
+            {!data && !busy && (
+              <Paper
+                sx={{
+                  minHeight: { lg: 360, xs: 260 },
+                  p: { xs: 2.5, sm: 4 },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  background: "linear-gradient(145deg, rgba(21,122,98,.08), rgba(255,255,255,.96) 60%)",
+                  border: "1px solid rgba(21,122,98,.12)",
+                }}
+              >
+                <Stack spacing={2} alignItems="center" sx={{ maxWidth: 680 }}>
+                  <Box sx={{ width: 58, height: 58, borderRadius: "18px", display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", fontSize: 28, boxShadow: 3 }}>✦</Box>
+                  <Box>
+                    <Typography variant="h5" fontWeight={800}>从一条问题开始分析经营数据</Typography>
+                    <Typography color="text.secondary" sx={{ mt: 0.75 }}>支持销售额、利润、成本、产品、部门和日期趋势分析</Typography>
+                  </Box>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="center" useFlexGap>
+                    {['产品销售排名', '部门利润对比', '近7天利润趋势'].map((item) => <Chip key={item} label={item} variant="outlined" onClick={() => ask(item)} />)}
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">分析结果会在这里展示，支持表格、图表和执行过程查看</Typography>
+                </Stack>
+              </Paper>
+            )}
             {error && (
               <Alert
                 severity="error"
