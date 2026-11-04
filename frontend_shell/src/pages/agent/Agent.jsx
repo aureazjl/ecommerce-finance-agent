@@ -156,6 +156,24 @@ function DataChart({ rows, initialType }) {
   const pie = items.reduce((parts, row, index) => { const start = parts.end; const end = start + (Math.abs(row.value) / total) * 360; parts.stops.push(`${['#157a62', '#2d9b7d', '#6bc3a6', '#b5e1cf', '#e5f4ed'][index % 5]} ${start}deg ${end}deg`); parts.end = end; return parts; }, { end: 0, stops: [] }).stops.join(", ");
   return <Box sx={{ mt: 1 }}><Stack direction="row" spacing={0.75} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.75 }}><Chip size="small" label="柱状图" color={type === "bar" ? "primary" : "default"} variant={type === "bar" ? "filled" : "outlined"} onClick={() => setType("bar")} /><Chip size="small" label="折线图" color={type === "line" ? "primary" : "default"} variant={type === "line" ? "filled" : "outlined"} onClick={() => setType("line")} /><Chip size="small" label="占比图" color={type === "pie" ? "primary" : "default"} variant={type === "pie" ? "filled" : "outlined"} onClick={() => setType("pie")} /></Stack>{type === "pie" ? <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" justifyContent="center"><Box role="img" aria-label="数据占比图" sx={{ width: 190, height: 190, borderRadius: "50%", background: `conic-gradient(${pie})`, position: "relative", "&::after": { content: '""', position: "absolute", inset: 48, bgcolor: "background.paper", borderRadius: "50%" } }} /><Stack spacing={0.5}>{items.slice(0, 6).map((row, index) => <Stack direction="row" spacing={0.7} alignItems="center" key={row.name}><Box sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: ['#157a62', '#2d9b7d', '#6bc3a6', '#b5e1cf', '#e5f4ed'][index % 5] }} /><Typography variant="caption" sx={{ maxWidth: 220 }} noWrap>{row.name} · {(Math.abs(row.value) / total * 100).toFixed(1)}%</Typography></Stack>)}</Stack></Stack> : <Box sx={{ height: 190, width: "100%", overflowX: "auto" }}>{type === "line" ? <svg viewBox="0 0 400 130" width="100%" height="190" role="img" aria-label="数据趋势图"><path d="M20 112H380" stroke="#dce9e3" />{points && <polyline points={points} fill="none" stroke="#157a62" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}{items.map((row, index) => <g key={row.name}><circle cx={20 + (index * 360) / Math.max(items.length - 1, 1)} cy={112 - (Math.abs(row.value) / max) * 92} r="4" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle></g>)}</svg> : <Stack direction="row" alignItems="end" justifyContent="center" gap={0.8} sx={{ height: 150, px: 1 }}>{items.map((row) => <Box key={row.name} title={`${row.name}: ${row.value.toFixed(2)}`} sx={{ flex: 1, minWidth: 12, maxWidth: 72, height: `${Math.max(8, (Math.abs(row.value) / max) * 100)}%`, bgcolor: row.value < 0 ? "error.main" : "primary.main", borderRadius: "5px 5px 0 0", transition: "height 180ms ease" }} />)}</Stack>}</Box>}</Box>;
 }
+function ChartDataTable({ rows }) {
+  return (
+    <Box sx={{ mt: 1, borderTop: "1px solid", borderColor: "divider", pt: 1 }}>
+      <Typography variant="caption" color="text.secondary">
+        横轴：产品名称　·　纵轴：数值
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 120px 80px", gap: 0.5, mt: 0.5 }}>
+        {rows.slice(0, 10).map((row) => (
+          <React.Fragment key={`chart-${row.name}`}>
+            <Typography variant="caption" noWrap title={row.name}>{row.name}</Typography>
+            <Typography variant="caption" align="right" fontWeight={700}>{Number(row.value || 0).toFixed(2)}</Typography>
+            <Typography variant="caption" align="right" color="text.secondary">{row.rows ?? "-"} 行</Typography>
+          </React.Fragment>
+        ))}
+      </Box>
+    </Box>
+  );
+}
 function EvidenceSummary({ evidence, source, modelStatus }) {
   const range = evidence.date_range?.filter(Boolean).join(" 至 ") || "未识别";
   const status = modelStatus === "called" ? "AI 已参与" : "本地规则";
@@ -609,6 +627,7 @@ export default function Agent() {
                       可视化趋势
                     </Typography>
                     <DataChart rows={rows} initialType={data.chart?.type} />
+                    <ChartDataTable rows={rows} />
                   </>
                 )}
                 <Box sx={{ mt: 2 }}>
