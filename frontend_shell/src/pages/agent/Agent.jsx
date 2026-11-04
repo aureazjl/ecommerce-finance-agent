@@ -543,6 +543,13 @@ export default function Agent() {
                 onChange={(e) => setQuestion(e.target.value)}
                 label="问问你的经营数据"
                 placeholder="例如：近七天哪些产品销量最好？"
+                InputLabelProps={{
+                  sx: {
+                    "&:not(.MuiInputLabel-shrink)": {
+                      transform: "translate(14px, 12px) scale(1)",
+                    },
+                  },
+                }}
                 sx={{
                   "& .MuiInputBase-root": { alignItems: "center" },
                   "& textarea": { paddingTop: "8px", paddingBottom: "8px" },
