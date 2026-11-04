@@ -158,7 +158,7 @@ function ChartWithAxes({ rows, type }) {
   const x = (index) => plot.left + ((index + 0.5) * plotWidth) / Math.max(items.length, 1);
   const y = (value) => plot.top + plotHeight - (Math.abs(value) / max) * plotHeight;
   return (
-    <Box sx={{ width: "100%", maxWidth: 900, mx: "auto" }}>
+    <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="300" role="img" aria-label="带坐标轴的产品数据图表">
         {ticks.map((tick) => {
           const yy = plot.top + plotHeight * (1 - tick);
