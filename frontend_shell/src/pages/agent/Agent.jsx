@@ -629,7 +629,7 @@ export default function Agent() {
                       结果明细
                     </Typography>
                     <Box sx={{ overflowX: "auto" }}>
-                      <Table size="small" sx={{ maxWidth: 900, mx: "auto" }}>
+                      <Table size="small" sx={{ width: "100%", tableLayout: "auto" }}>
                         <TableHead>
                           <TableRow>
                             <TableCell>名称</TableCell>
@@ -642,10 +642,9 @@ export default function Agent() {
                             <TableRow key={row.name}>
                               <TableCell
                                 sx={{
-                                  maxWidth: 360,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
+                                  maxWidth: 420,
+                                  whiteSpace: "normal",
+                                  overflowWrap: "anywhere",
                                 }}
                               >
                                 {row.name}
