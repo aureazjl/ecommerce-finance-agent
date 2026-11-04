@@ -44,7 +44,7 @@ def is_business_question(question):
     question = normalize_question(question)
     aliases = [alias for item in METRICS.values() for alias in item['aliases']]
     aliases += [alias for item in DIMENSIONS.values() for alias in item['aliases']]
-    business_terms = ('经营', '业绩', '表现', '数据', '分析', '排名', '趋势', '同比', '环比', '下降', '上涨', '最低', '最高', '多少', '哪个', '香水', '洗发水', '电吹风')
+    business_terms = ('经营', '业绩', '表现', '数据', '分析', '排名', '趋势', '同比', '环比', '下降', '上涨', '最低', '最高', '多少', '哪个', '香水', '洗发水', '电吹风', '推测', '预测', '爆品', '冬季')
     return any(x in question for x in aliases + list(business_terms))
 
 def extract_product_keyword(question):

@@ -21,6 +21,8 @@ def _apply_business_constraints(question, intent):
     q = question or ''
     if any(x in q for x in ('畅销', '卖得好', '卖得最好', '销量好', '销量最好', '销量最高', '热销', '热门商品', '热门产品')):
         intent.update(metric='销售额', metric_field='actual_sales', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
+    if any(x in q for x in ('推测', '预测', '爆品')):
+        intent.update(metric='销售额', metric_field='actual_sales', dimension='产品', dimension_field='product_name', operation='forecast', sort='desc')
     if any(x in q for x in ('最赚钱', '赚钱最多', '利润最高', '盈利最好')):
         intent.update(metric='利润', metric_field='profit', dimension='产品', dimension_field='product_name', operation='ranking', sort='desc')
     return intent
@@ -81,7 +83,7 @@ def semantic_node(state):
     if '成本' in q or '费用' in q:
         metrics.append({'metric': '总成本', 'metric_field': 'total_cost'})
     if len(metrics) > 1: metric = metrics[0]['metric']; metric_field = metrics[0]['metric_field']
-    if dimension is None and (any(x in q for x in ('柱形图', '柱状图', '条形图', '图表', '表格')) or '销量' in q or any(x in q for x in ('畅销', '卖得好', '热销', '热门商品', '热门产品'))):
+    if dimension is None and (any(x in q for x in ('柱形图', '柱状图', '条形图', '图表', '表格')) or '销量' in q or any(x in q for x in ('畅销', '卖得好', '热销', '热门商品', '热门产品', '推测', '预测', '爆品'))):
         dimension, dimension_field = '产品', 'product_name'
     intent = {**state.get('intent', {}), 'metric': metric, 'metric_field': metric_field, 'metrics': metrics, 'dimension': dimension, 'dimension_field': dimension_field, **dates, 'limit': 10, 'product_keyword': extract_product_keyword(q) or model_intent.get('product_keyword')}
     intent.update({k: model_intent[k] for k in ('operation','sort','filters') if k in model_intent})

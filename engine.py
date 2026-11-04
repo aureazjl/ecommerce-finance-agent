@@ -35,11 +35,11 @@ def ask(question, cookie='', user_name='', normalized_intent=None):
         result_rows = [{'name': metric_name, 'value': round(total_value, 2), 'rows': row_count}]
     total = round(sum(x['value'] for x in result_rows), 2) if dimension_field else result_rows[0]['value']; intent = {'metric': metric_name, 'metric_field': metric_field, 'dimension': dimension_name, 'dimension_field': dimension_field, 'start_date': start, 'end_date': end, 'limit': 10, 'product_keyword': product_keyword}; elapsed = int((time.perf_counter() - started) * 1000)
     diagnosis = _diagnosis(question, query, result_rows)
-    ranking = normalized_intent.get('operation') == 'ranking' and dimension_field
+    ranking = normalized_intent.get('operation') in {'ranking', 'forecast'} and dimension_field
     if not result_rows: answer = f'{start} 至 {end} 没有可分析数据，最近有数据日期为 {latest_data_date() or "无"}。'
     elif ranking:
         top = result_rows[0]
-        answer = f'{start} - {end}: {dimension_name} {metric_name} top is {top["name"]}, value {float(top["value"]):,.2f}.'
+        answer = (f'基于现有历史数据，{start} - {end} 的{dimension_name}{metric_name}最高是 {top["name"]}，数值为 {float(top["value"]):,.2f}。这只是历史表现参考，不代表确定的未来预测。' if normalized_intent.get('operation') == 'forecast' else f'{start} - {end}: {dimension_name} {metric_name} top is {top["name"]}, value {float(top["value"]):,.2f}.')
     elif diagnosis: answer = f'{start} 至 {end}，{metric_name}{diagnosis["direction"]}{abs(diagnosis["delta"]):,.2f}，当前 {diagnosis["current"]:,.2f}，对比期间 {diagnosis["previous"]:,.2f}。'
     else: answer = f'{start} 至 {end}，{metric_name}为 {total:,.2f}。'
     record(user_name, question, intent, 'finance.db:product_profit_daily', row_count, elapsed)

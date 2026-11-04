@@ -44,4 +44,11 @@ class GraphTests(unittest.TestCase):
         result = agent_graph.invoke({'question': '最近7天每天利润趋势', 'user_name': 'test'})
         self.assertEqual(result['result']['chart']['type'], 'line')
 
+    def test_forecast_question_returns_product_sales_reference(self):
+        result = agent_graph.invoke({'question': '推测冬季可能产生的爆品产品', 'user_name': 'test'})
+        self.assertEqual(result['intent']['metric'], '销售额')
+        self.assertEqual(result['intent']['dimension'], '产品')
+        self.assertEqual(result['intent']['operation'], 'forecast')
+        self.assertIn('历史数据', result['result']['answer'])
+
 if __name__ == '__main__': unittest.main()

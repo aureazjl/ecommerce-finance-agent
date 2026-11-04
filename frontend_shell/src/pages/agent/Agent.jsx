@@ -571,7 +571,7 @@ export default function Agent() {
                   {busy ? progress || "分析中…" : "开始分析"}
                 </Button>
               </Stack>
-              {busy && (
+              {(busy || Object.keys(stageTimes).length > 0) && (
                 <Box sx={{ mt: 1.5 }}>
                   <Flow
                     active={progress}
@@ -715,7 +715,7 @@ export default function Agent() {
                       sx={{ display: "block", mt: 1, lineHeight: 1.8 }}
                     >
                       {trace
-                        .map((x) => `${x.node.replaceAll("DeepSeek", "ChatGPT")} · ${x.duration_ms}ms`)
+                        .map((x, i) => `${x.node.replaceAll("DeepSeek", "ChatGPT")} · ${Math.max(0, x.duration_ms - (trace[i - 1]?.duration_ms || 0)).toFixed(0)}ms`)
                         .join(" → ")}
                     </Typography>
                   </Collapse>
