@@ -150,7 +150,7 @@ function ChartWithAxes({ rows, type }) {
   const items = rows.slice(0, 10).map((row) => ({ ...row, value: Number(row.value || 0) }));
   const width = Math.max(760, 64 + 30 + items.length * 70 + Math.max(items.length - 1, 0) * 18 + 24);
   const height = 300;
-  const plot = { left: 64, right: 24, top: 24, bottom: 76 };
+  const plot = { left: 64, right: 24, top: 40, bottom: 76 };
   const plotWidth = width - plot.left - plot.right;
   const plotHeight = height - plot.top - plot.bottom;
   const max = Math.max(...items.map((row) => Math.abs(row.value)), 1);
@@ -175,7 +175,7 @@ function ChartWithAxes({ rows, type }) {
           const barWidth = 70;
           const yy = y(row.value);
           return <g key={row.name}>
-            {type === "line" ? <circle cx={x(index)} cy={yy} r="5" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle> : <><rect x={barX} y={yy} width={barWidth} height={plot.top + plotHeight - yy} rx="4" fill={row.value < 0 ? "#c55a45" : "#157a62"}><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></rect><text x={barX + barWidth / 2} y={Math.max(plot.top + 12, yy - 6)} textAnchor="middle" fontSize="11" fill="#29483d">{row.value.toFixed(0)}</text></>}
+            {type === "line" ? <circle cx={x(index)} cy={yy} r="5" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle> : <><rect x={barX} y={yy} width={barWidth} height={plot.top + plotHeight - yy} rx="4" fill={row.value < 0 ? "#c55a45" : "#157a62"}><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></rect><text x={barX + barWidth / 2} y={Math.max(14, yy - 6)} textAnchor="middle" fontSize="11" fill="#29483d">{row.value.toFixed(0)}</text></>}
             <text x={barX + barWidth / 2} y={height - 42} textAnchor="middle" fontSize="11" fill="#526b61" transform={`rotate(-28 ${barX + barWidth / 2} ${height - 42})`}>{row.name}</text>
           </g>;
         })}
