@@ -452,7 +452,7 @@ export default function Agent() {
       ? "ChatGPT 已调用"
       : "本地兜底";
   return (
-    <Box sx={{ maxWidth: 1480, mx: "auto", pb: 4 }}>
+    <Box sx={{ maxWidth: 1480, mx: "auto", pb: 4, height: { lg: "100vh", xs: "auto" }, overflow: { lg: "hidden", xs: "visible" } }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="h4" fontWeight={800}>
@@ -467,10 +467,12 @@ export default function Agent() {
               lg: "210px minmax(0, 1fr) 250px",
             },
             gap: 2,
-            alignItems: "start",
+            alignItems: "stretch",
+            height: { lg: "calc(100vh - 110px)", xs: "auto" },
+            minHeight: 0,
           }}
         >
-          <Paper sx={{ p: 1.5, position: { lg: "sticky" }, top: 16 }}>
+          <Paper sx={{ p: 1.5, position: { lg: "sticky" }, top: 16, height: { lg: "100%", xs: "auto" }, overflowY: { lg: "auto", xs: "visible" } }}>
             <Section
               title="分析空间"
               icon={<HistoryRoundedIcon color="primary" />}
@@ -521,7 +523,7 @@ export default function Agent() {
               </Stack>
             </Section>
           </Paper>
-          <Stack spacing={2}>
+          <Stack spacing={2} sx={{ minHeight: 0, overflowY: { lg: "auto", xs: "visible" }, pr: { lg: 0.5, xs: 0 } }}>
             <Paper sx={{ p: { xs: 1.5, sm: 2.5 } }}>
               <TextField
                 fullWidth
@@ -695,7 +697,7 @@ export default function Agent() {
               </Paper>
             )}
           </Stack>
-          <Paper sx={{ p: 2, position: { lg: "sticky" }, top: 16 }}>
+          <Paper sx={{ p: 2, position: { lg: "sticky" }, top: 16, height: { lg: "100%", xs: "auto" }, overflowY: { lg: "auto", xs: "visible" } }}>
             <Section
               title="分析上下文"
               icon={<DataObjectRoundedIcon color="primary" />}
