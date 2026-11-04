@@ -454,6 +454,7 @@ export default function Agent() {
     if (!r.ok) setError("保存分析失败");
   };
   const rows = data?.table || data?.rows || [];
+  const tableTotal = rows.reduce((sum, row) => sum + Math.abs(Number(row.value || 0)), 0) || 1;
   const trace = (data?.trace || []).filter((x) => coreNodes.has(x.node));
   const evidence = data?.evidence || {};
   const dateRange =
@@ -640,17 +641,20 @@ export default function Agent() {
                       结果明细
                     </Typography>
                     <Box sx={{ overflowX: "auto" }}>
-                      <Table size="small" sx={{ width: "100%", tableLayout: "auto" }}>
+                      <Table size="small" sx={{ width: "100%", tableLayout: "auto", "& th, & td": { py: 0.7, px: 1 } }}>
                         <TableHead>
                           <TableRow>
-                            <TableCell>名称</TableCell>
-                            <TableCell align="right">数值</TableCell>
-                            <TableCell align="right">行数</TableCell>
+                            <TableCell sx={{ width: 52 }}>排名</TableCell>
+                            <TableCell>产品 / 维度</TableCell>
+                            <TableCell align="right">指标值</TableCell>
+                            <TableCell align="right">占比</TableCell>
+                            <TableCell align="right">数据行</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {rows.slice(0, 10).map((row) => (
+                          {rows.slice(0, 10).map((row, index) => (
                             <TableRow key={row.name}>
+                              <TableCell color="text.secondary">{index + 1}</TableCell>
                               <TableCell
                                 sx={{
                                   maxWidth: 420,
@@ -661,7 +665,10 @@ export default function Agent() {
                                 {row.name}
                               </TableCell>
                               <TableCell align="right">
-                                {Number(row.value || 0).toFixed(2)}
+                                {Number(row.value || 0).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell align="right">
+                                {(Math.abs(Number(row.value || 0)) / tableTotal * 100).toFixed(1)}%
                               </TableCell>
                               <TableCell align="right">
                                 {row.rows ?? "-"}
