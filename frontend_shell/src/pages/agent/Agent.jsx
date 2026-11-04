@@ -452,7 +452,7 @@ export default function Agent() {
       ? "ChatGPT 已调用"
       : "本地兜底";
   return (
-    <Box sx={{ maxWidth: 1480, mx: "auto", boxSizing: "border-box", height: { lg: "100vh", xs: "auto" }, overflow: { lg: "hidden", xs: "visible" } }}>
+    <Box sx={{ maxWidth: 1480, mx: "auto", boxSizing: "border-box", height: { lg: "calc(100vh - 112px)", xs: "auto" }, overflow: { lg: "hidden", xs: "visible" } }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="h4" fontWeight={800}>
@@ -468,7 +468,7 @@ export default function Agent() {
             },
             gap: 2,
             alignItems: "stretch",
-            height: { lg: "calc(100vh - 110px)", xs: "auto" },
+            height: { lg: "calc(100vh - 174px)", xs: "auto" },
             minHeight: 0,
           }}
         >
