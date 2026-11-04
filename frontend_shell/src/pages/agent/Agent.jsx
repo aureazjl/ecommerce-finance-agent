@@ -146,9 +146,45 @@ function Flow({ active, elapsed = 0, stageTimes = {} }) {
     </Box>
   );
 }
+function ChartWithAxes({ rows, type }) {
+  const items = rows.slice(0, 10).map((row) => ({ ...row, value: Number(row.value || 0) }));
+  const width = Math.max(620, items.length * 92);
+  const height = 300;
+  const plot = { left: 64, right: 24, top: 24, bottom: 76 };
+  const plotWidth = width - plot.left - plot.right;
+  const plotHeight = height - plot.top - plot.bottom;
+  const max = Math.max(...items.map((row) => Math.abs(row.value)), 1);
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const x = (index) => plot.left + ((index + 0.5) * plotWidth) / Math.max(items.length, 1);
+  const y = (value) => plot.top + plotHeight - (Math.abs(value) / max) * plotHeight;
+  return (
+    <Box sx={{ width: "100%", overflowX: "auto" }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label="带坐标轴的产品数据图表">
+        {ticks.map((tick) => {
+          const yy = plot.top + plotHeight * (1 - tick);
+          return <g key={tick}><line x1={plot.left} x2={width - plot.right} y1={yy} y2={yy} stroke="#dce9e3" /><text x={plot.left - 8} y={yy + 4} textAnchor="end" fontSize="11" fill="#60756d">{(max * tick).toFixed(0)}</text></g>;
+        })}
+        <line x1={plot.left} x2={plot.left} y1={plot.top} y2={plot.top + plotHeight} stroke="#789188" />
+        <line x1={plot.left} x2={width - plot.right} y1={plot.top + plotHeight} y2={plot.top + plotHeight} stroke="#789188" />
+        <text x="14" y={plot.top + plotHeight / 2} transform={`rotate(-90 14 ${plot.top + plotHeight / 2})`} textAnchor="middle" fontSize="11" fill="#526b61">数值</text>
+        {type === "line" && items.length > 1 && <polyline points={items.map((row, index) => `${x(index)},${y(row.value)}`).join(" ")} fill="none" stroke="#157a62" strokeWidth="3" />}
+        {items.map((row, index) => {
+          const barX = plot.left + (index * plotWidth) / items.length + 12;
+          const barWidth = Math.max(18, plotWidth / items.length - 24);
+          const yy = y(row.value);
+          return <g key={row.name}>
+            {type === "line" ? <circle cx={x(index)} cy={yy} r="5" fill="#157a62"><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></circle> : <><rect x={barX} y={yy} width={barWidth} height={plot.top + plotHeight - yy} rx="4" fill={row.value < 0 ? "#c55a45" : "#157a62"}><title>{`${row.name}: ${row.value.toFixed(2)}`}</title></rect><text x={barX + barWidth / 2} y={Math.max(plot.top + 12, yy - 6)} textAnchor="middle" fontSize="11" fill="#29483d">{row.value.toFixed(0)}</text></>}
+            <text x={x(index)} y={height - 42} textAnchor="middle" fontSize="11" fill="#526b61" transform={`rotate(-28 ${x(index)} ${height - 42})`}>{row.name}</text>
+          </g>;
+        })}
+      </svg>
+    </Box>
+  );
+}
 function DataChart({ rows, initialType }) {
   const [type, setType] = React.useState(initialType || "bar");
   React.useEffect(() => setType(initialType || "bar"), [initialType]);
+  if (type === "bar" || type === "line") return <><Stack direction="row" spacing={0.75} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.75 }}><Chip size="small" label="柱状图" color={type === "bar" ? "primary" : "default"} variant={type === "bar" ? "filled" : "outlined"} onClick={() => setType("bar")} /><Chip size="small" label="折线图" color={type === "line" ? "primary" : "default"} variant={type === "line" ? "filled" : "outlined"} onClick={() => setType("line")} /><Chip size="small" label="占比图" color="default" variant="outlined" onClick={() => setType("pie")} /></Stack><ChartWithAxes rows={rows} type={type} /></>;
   const items = rows.slice(0, 10).map((row) => ({ ...row, value: Number(row.value || 0) }));
   const max = Math.max(...items.map((row) => Math.abs(row.value)), 1);
   const total = items.reduce((sum, row) => sum + Math.abs(row.value), 0) || 1;
@@ -627,7 +663,6 @@ export default function Agent() {
                       可视化趋势
                     </Typography>
                     <DataChart rows={rows} initialType={data.chart?.type} />
-                    <ChartDataTable rows={rows} />
                   </>
                 )}
                 <Box sx={{ mt: 2 }}>
