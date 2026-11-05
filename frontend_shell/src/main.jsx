@@ -32,7 +32,7 @@ const router = createBrowserRouter(
       <Route path="agent" element={<Agent />} />
     </Route>
   ),
-  { basename: import.meta.env.BASE_URL }
+  { basename: window.location.pathname.startsWith('/ecommerce-finance-agent') ? import.meta.env.BASE_URL : '/' }
 );
 
 createRoot(document.getElementById("root")).render(
