@@ -114,7 +114,7 @@ const SideBar = ({ open, handleDrawerClose, handleDrawerOpen, user }) => {
                 onClick={() => { navigate(item.path); if (isMobile) handleDrawerClose(); }}
                 sx={{ minHeight: 48, justifyContent: open ? "initial" : "center", px: 2.5,
                   my: 0.35,
-                  borderRadius: 2,
+                  borderRadius: 0,
                   color: location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path)) ? "primary.main" : "text.secondary",
                   bgcolor: location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path)) ? (theme.palette.mode === "dark" ? grey[800] : "rgba(21,122,98,.10)") : "transparent",
                   "&:hover": { bgcolor: "rgba(21,122,98,.08)", color: "primary.main" } }}
