@@ -15,7 +15,6 @@ import MuiAppBar from "@mui/material/AppBar";
 import MenuIcon from "@mui/icons-material/Menu";
 import Person2OutlinedIcon from "@mui/icons-material/Person2Outlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import { useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 const AppBar = styled(MuiAppBar, {
@@ -42,7 +41,6 @@ const AppBar = styled(MuiAppBar, {
   }),
 }));
 export default function CustomAppBar({ open, handleDrawerOpen, onHideMobile, onLogout, user }) {
-  const navigate = useNavigate();
   const [accountAnchor, setAccountAnchor] = React.useState(null);
   const accountOpen = Boolean(accountAnchor);
   return (
@@ -83,7 +81,6 @@ export default function CustomAppBar({ open, handleDrawerOpen, onHideMobile, onL
         </Stack>
       </Toolbar>
       <Menu id="account-menu" anchorEl={accountAnchor} open={accountOpen} onClose={() => setAccountAnchor(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
-        <MenuItem onClick={() => { setAccountAnchor(null); navigate("/profile"); }}>账户信息</MenuItem>
         <MenuItem onClick={async () => { setAccountAnchor(null); await onLogout(); }}>退出登录</MenuItem>
       </Menu>
     </AppBar>
